@@ -6,7 +6,13 @@
 
 ```bash
 ./script/config.sh
-./data/download_data.sh
+```
+
+## Data
+
+```bash
+cd data 
+./download_data.sh
 ```
 
 ## Build
