@@ -13,7 +13,7 @@
 // #include <pca.h>
 // #include <armadillo>
 
-#include "AuxIndexStructures.h"
+// #include "AuxIndexStructures.h"
 #include "DistanceComputer.h"
 // #include <faiss/impl/IDSelector.h>
 #include "../utils/prefetch.h"

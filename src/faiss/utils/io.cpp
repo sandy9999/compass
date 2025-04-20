@@ -72,3 +72,21 @@ float* fvecs_read(const char* fname, size_t* d_out, size_t* n_out) {
 int* ivecs_read(const char* fname, size_t* d_out, size_t* n_out) {
     return (int*)fvecs_read(fname, d_out, n_out);
 }
+
+void fvecs_write(const char* fname, float* data, size_t d, size_t n) {
+    FILE* f = fopen(fname, "w");
+    if (!f) {
+        fprintf(stderr, "could not open %s\n", fname);
+        perror("");
+        abort();
+    }
+    for (size_t i = 0; i < n; i++){
+        fwrite(&d, 1, sizeof(int), f);
+        fwrite(data + i*d, d, sizeof(float), f);
+    }
+    fclose(f);
+}
+
+void ivecs_write(const char* fname, int* data, size_t d, size_t n) {
+    fvecs_write(fname, (float*)data, d, n);
+}

@@ -14,13 +14,17 @@ add_subdirectory(src)
 
 
 # Add executable
-add_executable(test_compass_ring ./tests/test_compass_ring.cpp ./src/cluster.cpp ./src/block.cpp ./src/graph.cpp ./tests/utils/config_parser.cpp)
+add_executable(test_compass_ring ./tests/test_compass_ring.cpp ./src/cluster.cpp ./src/node.cpp ./src/graph.cpp ./tests/utils/config_parser.cpp)
 target_link_libraries(test_compass_ring PRIVATE faiss oram_library argmap rapidjson)
 target_link_libraries(test_compass_ring PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} )
 
-# add_executable(test_compass_tp ./tests/test_compass_ring_tp.cpp ./src/cluster.cpp ./src/block.cpp ./src/graph.cpp ./tests/utils/config_parser.cpp)
-# target_link_libraries(test_compass_tp PRIVATE faiss oram_library argmap rapidjson)
-# target_link_libraries(test_compass_tp PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} )
+add_executable(test_compass_tp ./tests/test_compass_ring_tp.cpp ./src/cluster.cpp ./src/node.cpp ./src/graph.cpp ./tests/utils/config_parser.cpp)
+target_link_libraries(test_compass_tp PRIVATE faiss oram_library argmap rapidjson)
+target_link_libraries(test_compass_tp PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} )
+
+add_executable(compass_init ./tests/eval/compass_init.cpp ./src/cluster.cpp ./src/node.cpp ./src/graph.cpp ./tests/utils/config_parser.cpp)
+target_link_libraries(compass_init PRIVATE faiss oram_library argmap rapidjson)
+target_link_libraries(compass_init PRIVATE ${LIBPCA_LIBRARY} ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} )
 
 # add_executable(test_init_ring ./tests/eval/test_init_dataset_ring.cpp ./src/cluster.cpp ./src/block.cpp ./src/graph.cpp ./tests/utils/config_parser.cpp)
 # target_link_libraries(test_init_ring PRIVATE faiss oram_library argmap rapidjson)

@@ -36,7 +36,7 @@
 #include "./utils/Heap.h"
 // #include "./utils/distances.h"
 #include "./utils/random.h"
-#include "./utils/sorting.h"
+// #include "./utils/sorting.h"
 
 // extern "C" {
 
@@ -136,7 +136,7 @@ void IndexHNSW::set_graph_cache(int lowest_cached_layer, BlockFetcher* bf, const
 
     // free the memory
     hnsw.neighbors = std::vector<storage_idx_t>();
-    // cout << "cached graph size: " << gsize << endl;
+    cout << "cached graph size: " << gsize << endl;
 }
 
 // SearchStats IndexHNSW::search(
@@ -242,8 +242,9 @@ SearchStats IndexHNSW::oblivious_search(
         // dis->set_query(x + i * d);
         pqdis->set_query(x + i * d);
         maxheap_heapify(k, simi, idxi);
+        HNSWStats stats;
         // HNSWStats stats = hnsw.oblivious_search_preload_beam(*gcache, *dis, k, idxi, simi, vt, params);
-        HNSWStats stats = hnsw.oblivious_search_preload_beam_cache_upper(*gcache, *pqdis, k, idxi, simi, vt, params);
+        stats = hnsw.oblivious_search_preload_beam_cache_upper(*gcache, *pqdis, k, idxi, simi, vt, params);
         // HNSWStats stats = hnsw.oblivious_search_preload_beam_cache_upper_ablation(*gcache, *pqdis, k, idxi, simi, vt, params);
         maxheap_reorder(k, simi, idxi);
 
@@ -260,12 +261,14 @@ SearchStats IndexHNSW::oblivious_search(
 
         t_search += search;
         t_fetch += stats.oram_fetch;
+
+        std::cout << "-> done: " <<  i << std::endl;
     }
 
 
-    // std::cout << "Avg. fetch latency: " <<  t_fetch / n << std::endl;
-    // std::cout << "Avg. response latency: " << t_response / n << std::endl;
-    // std::cout << "Avg. search latency: " <<  t_search / n << std::endl;
+    std::cout << "Avg. fetch latency: " <<  t_fetch / n << std::endl;
+    std::cout << "Avg. response latency: " << t_response / n << std::endl;
+    std::cout << "Avg. search latency: " <<  t_search / n << std::endl;
 
     return s_stats;
 }

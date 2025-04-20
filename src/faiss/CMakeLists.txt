@@ -8,7 +8,6 @@ set(FAISS_SRC
     utils/Heap.cpp
     utils/random.cpp
     utils/io.cpp
-    storage/storage.cpp
     IndexHNSW.cpp
     index_io.cpp
 )

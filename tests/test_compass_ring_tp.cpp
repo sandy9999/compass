@@ -85,24 +85,6 @@ float compute_recall(faiss::idx_t* gt, int gt_size, faiss::idx_t* I, int nq, int
     return (n_10 / float(nq));
 }
 
-void fvecs_write(const char* fname, float* data, size_t d, size_t n) {
-    FILE* f = fopen(fname, "w");
-    if (!f) {
-        fprintf(stderr, "could not open %s\n", fname);
-        perror("");
-        abort();
-    }
-    for (size_t i = 0; i < n; i++){
-        fwrite(&d, 1, sizeof(int), f);
-        fwrite(data + i*d, d, sizeof(float), f);
-    }
-    fclose(f);
-}
-
-void ivecs_write(const char* fname, int* data, size_t d, size_t n) {
-    fvecs_write(fname, (float*)data, d, n);
-}
-
 inline void tprint(string s, double t0){
     cout << "[" << std::fixed << std::setprecision(3) << elapsed() - t0 << "s] " << s;
 }
@@ -146,7 +128,8 @@ int main(int argc, char **argv) {
         md.dummy_size, 
         md.evict_rate, 
         md.base_size,
-        md.num_levels
+        md.num_levels,
+        md.oram_cached_levels
     );
 
     OptNode::n_neighbors = 2*md.M;
@@ -159,7 +142,7 @@ int main(int argc, char **argv) {
     // cout << "bucket_size: " << md.bucket_size << endl;
     // cout << "sbucket_size: " << SBucket::getCipherSize() << endl;
 
-    RemoteServerStorage* rss = new RemoteServerStorage(config.block_size, io, isServer, config.num_levels, md.integrity);
+    RemoteServerStorage* rss = new RemoteServerStorage(config.block_size, io, isServer, config.num_levels, md.integrity, config);
 
     RandForOramInterface* random = new RandomForOram();
 
@@ -173,7 +156,7 @@ int main(int argc, char **argv) {
         tprint("Starting remote server... \n", t0);
         
         bool in_memory = true;
-        RemoteServerRing server = RemoteServerRing(io, config.num_buckets, config.bucket_size, in_memory, md.integrity);
+        RemoteServerRing server = RemoteServerRing(io, config.num_buckets, config.bucket_size, in_memory, md.integrity, config);
 
         tprint("Faster initialization...\n", t0);
 
@@ -262,7 +245,7 @@ int main(int argc, char **argv) {
             bf_io->recv_data(&ready, sizeof(bool));
 
             if(md.integrity){
-                rss->sync_hash(config);
+                rss->sync_hash_roots();
             }
             
         }

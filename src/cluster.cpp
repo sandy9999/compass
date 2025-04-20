@@ -134,7 +134,7 @@ Cluster* get_cluster_by_distance(faiss::IndexHNSW* index, float* xb, node_id_t e
 // }
 
 void fully_naive_cluster(BlockFetcher* bf, faiss::IndexHNSW* index, float* xb, std::vector<uint8_t> codes){
-    std::cout << "Start clustering: " << std::endl;
+    std::cout << "-> Start clustering: " << std::endl;
     node_id_t ntotal = index->hnsw.levels.size();
     int d = index->d;
 
@@ -192,9 +192,8 @@ void fully_naive_cluster(BlockFetcher* bf, faiss::IndexHNSW* index, float* xb, s
 
         }
         if(nid % 10000 == 0){
-            std::cout << "Done clustering: " << nid << std::endl;
+            std::cout << "-> Done clustering: " << nid << std::endl;
         }
-        // std::cout << "Done clustering: " << nid << std::endl;
     }
 
 

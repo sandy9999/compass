@@ -85,24 +85,6 @@ float compute_recall(faiss::idx_t* gt, int gt_size, faiss::idx_t* I, int nq, int
     return (n_10 / float(nq));
 }
 
-void fvecs_write(const char* fname, float* data, size_t d, size_t n) {
-    FILE* f = fopen(fname, "w");
-    if (!f) {
-        fprintf(stderr, "could not open %s\n", fname);
-        perror("");
-        abort();
-    }
-    for (size_t i = 0; i < n; i++){
-        fwrite(&d, 1, sizeof(int), f);
-        fwrite(data + i*d, d, sizeof(float), f);
-    }
-    fclose(f);
-}
-
-void ivecs_write(const char* fname, int* data, size_t d, size_t n) {
-    fvecs_write(fname, (float*)data, d, n);
-}
-
 inline void tprint(string s, double t0){
     cout << "[" << std::fixed << std::setprecision(3) << elapsed() - t0 << "s] " << s;
 }
@@ -112,12 +94,14 @@ int party = 0;
 int port = 8000;
 string address = "127.0.0.1";
 string dataset = "";
+int n = 10;
 
 int main(int argc, char **argv) {
     ArgMapping amap;
     amap.arg("r", party, "Role of party: Server = 1; Client = 2");
     amap.arg("p", port, "Port Number");
     amap.arg("d", dataset, "Dataset: [sift, trip, msmarco, laion]");
+    amap.arg("n", n, "# queries");
     amap.arg("ip", address, "IP Address of server");
     amap.parse(argc, argv);
 
@@ -146,7 +130,8 @@ int main(int argc, char **argv) {
         md.dummy_size, 
         md.evict_rate, 
         md.base_size,
-        md.num_levels
+        md.num_levels,
+        md.oram_cached_levels
     );
 
     OptNode::n_neighbors = 2*md.M;
@@ -159,7 +144,7 @@ int main(int argc, char **argv) {
     // cout << "bucket_size: " << md.bucket_size << endl;
     // cout << "sbucket_size: " << SBucket::getCipherSize() << endl;
 
-    RemoteServerStorage* rss = new RemoteServerStorage(config.block_size, io, isServer, config.num_levels, md.integrity);
+    RemoteServerStorage* rss = new RemoteServerStorage(config.block_size, io, isServer, config.num_levels, md.integrity, config);
 
     RandForOramInterface* random = new RandomForOram();
 
@@ -173,7 +158,7 @@ int main(int argc, char **argv) {
         tprint("Starting remote server... \n", t0);
         
         bool in_memory = true;
-        RemoteServerRing server = RemoteServerRing(io, config.num_buckets, config.bucket_size, in_memory, md.integrity);
+        RemoteServerRing server = RemoteServerRing(io, config.num_buckets, config.bucket_size, in_memory, md.integrity, config);
 
         tprint("Faster initialization...\n", t0);
 
@@ -184,7 +169,7 @@ int main(int argc, char **argv) {
 
         if(md.integrity){
             server.load_hash(md.hash_path.c_str());
-            server.sync_hash();
+            server.sync_hash_2();
         }
 
         tprint("Run server...\n", t0);
@@ -194,9 +179,6 @@ int main(int argc, char **argv) {
         
 		server.RunServer();
     } else{
-
-        // 14KB
-
         // Client
         tprint("Initializing ORAM... \n", t0);
 
@@ -216,29 +198,17 @@ int main(int argc, char **argv) {
         tprint("Loading ORAM metadata\n", t0);
         ((OramRing*)oram)->loadMetaDataFromFile(md.metadata_path.c_str());
 
-        // Loading data
+        // # search result
         size_t k = 10;
 
         tprint("Loading prebuilt index\n", t0);
 
         faiss::IndexHNSW* index = faiss::read_index(md.index_path.c_str(), 0);
 
-        // 276 MB
-
         tprint("Loading pq index\n", t0);
 
         faiss::ProductQuantizer* pq = faiss::read_pq(md.pq_path.c_str(), 0);
         pq->print_stats();
-
-        // 284 MB
-
-
-        tprint("Loading storage\n", t0);
-
-        // size_t nb, dim;
-        // float* xb = fvecs_read(md.base_path.c_str(), &dim, &nb);
-
-        // 776 MB
 
         tprint("Clustering\n", t0);
 
@@ -251,28 +221,26 @@ int main(int argc, char **argv) {
         // bool tmp;
         // io->recv_data(&tmp, 1);        
 
-        // 828 MB
-
-        // For faster initialization only
+        // Read client states
         {
             obf->read_block_mapping(md.block_map_path.c_str());
+
+            // stash
             ((OramRing*)oram)->loadPositionMapFromFile(md.pos_map_path.c_str());
             
             bool ready;
             bf_io->recv_data(&ready, sizeof(bool));
 
             if(md.integrity){
-                rss->sync_hash(config);
+                rss->sync_hash_roots();
             }
-            
+
+            // Graph cache
+            index->set_graph_cache(md.ef_lowest_cached_layer, obf, md.graph_cache_path.c_str());
+
+            // ORAM cache
+            ((OramRing*)oram)->init_cache_top();
         }
-
-        // 852 MB
-
-        index->set_graph_cache(md.ef_lowest_cached_layer, obf, md.graph_cache_path.c_str());
-        // delete[] xb;
-
-        // 113MB
 
         tprint("Loading queries\n", t0);
         size_t nq;
@@ -282,40 +250,35 @@ int main(int argc, char **argv) {
             size_t d2;
             xq = fvecs_read(md.query_path.c_str(), &d2, &nq);
             assert(md.dim == d2 || !"query does not have same dimension as train set");
+            assert(n <= nq || !"# queries larger than query set");
         }
 
         tprint("Loading GT\n", t0);
 
-        faiss::idx_t* gt; // nq * k matrix of ground-truth nearest-neighbors
+        faiss::idx_t* gt; // nq * gt_size matrix of ground-truth nearest-neighbors
         size_t gt_size;
 
         {
-            size_t k1;         // nb of results per query in the GT
-            printf("[%.3f s] Loading ground truth for %ld queries\n",
-                elapsed() - t0,
-                nq);
+
+            tprint("Loading ground truth for " + to_string(nq) + "queries\n", t0);
 
             // load ground-truth and convert int to long
             size_t nq2;
-            int* gt_int = ivecs_read(md.gt_path.c_str(), &k1, &nq2);
+            int* gt_int = ivecs_read(md.gt_path.c_str(), &gt_size, &nq2);
             assert(nq2 == nq || !"incorrect nb of ground truth entries");
             // assert(k == k1 || !"incorrect k");
 
-            gt = new faiss::idx_t[k1 * nq];
-            gt_size = k1;
-            for (int i = 0; i < k1 * nq; i++) {
+            gt = new faiss::idx_t[gt_size * nq];
+            for (int i = 0; i < gt_size * nq; i++) {
                 gt[i] = gt_int[i];
             }
             delete[] gt_int;
         }
 
-        ((OramRing*)oram)->init_cache_top();
-
         // bool tmp;
         // io->recv_data(&tmp, 1);
 
-        // faster test for first 100 queries
-        nq = 100;
+        nq = n;
 
         comm = io->counter;
         round = io->num_rounds;
@@ -348,6 +311,7 @@ int main(int argc, char **argv) {
                 params
             );
 
+
             unsigned long total = 0;
             for(int nrt : s_stats.nsteps_map[0]){
                 total += nrt;
@@ -373,13 +337,19 @@ int main(int argc, char **argv) {
                 result[i] = I[i];
             }
             
+            delete params;
+
             delete[] result;
             delete[] I;
             delete[] D;
+            delete[] gt;
         }
 
         rss->CloseServer();
     }
+
+    // delete io;
+    // delete bf_io;
 
     std::cout << "Communication cost: " << io->counter - comm << std::endl;
     std::cout << "Round: " << io->num_rounds - round << std::endl;

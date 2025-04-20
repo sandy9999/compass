@@ -4,7 +4,7 @@
 #include <map>
 #include <set>
 
-#include "block.h"
+#include "node.h"
 
 /*
  * Graph storage and indexing 

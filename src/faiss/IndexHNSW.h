@@ -14,7 +14,7 @@
 
 #include "impl/HNSW.h"
 #include "Index.h"
-#include "storage/storage.h"
+// #include "storage/storage.h"
 // #include <faiss/utils/utils.h>
 
 // double getmillisecs() {
