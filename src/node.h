@@ -364,7 +364,7 @@ class ObliviousBlockFetcherRing : public BlockFetcher{
             bids.push_back(node_to_block[node_id][l]);
         }
 
-        vector<int*> accessed = ((OramRing*)oram)->batch_multi_access_swap_ro(
+        vector<int*> accessed = ((OramRing*)oram)->access(
             vector<OramInterface::Operation>(len, OramInterface::Operation::READ),
             bids,
             vector<int*>(len, NULL),

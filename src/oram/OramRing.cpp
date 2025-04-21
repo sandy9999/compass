@@ -77,17 +77,18 @@ void OramMetaData::print_stat(){
 // }
 
 
-OramRing::OramRing(UntrustedStorageInterface* storage, RandForOramInterface* rand_gen,
-                                           int block_size, int real_bucket_size, int dummy_size, int evict_rate, int num_blocks, int num_levels, int cached_levels) {
+OramRing::OramRing(UntrustedStorageInterface* storage, RandForOramInterface* rand_gen, RingOramConfig config, int num_levels, int cached_levels, bool batch, bool lazy) {
     this->storage = storage;
     this->rand_gen = rand_gen;
-    this->block_size = block_size;
-    this->real_bucket_size = real_bucket_size;
-    this->dummy_size = dummy_size;
-    this->bucket_size = real_bucket_size + dummy_size;
-    this->evict_rate = evict_rate;
+    this->block_size = config.block_size;
+    this->real_bucket_size = config.real_bucket_size;
+    this->dummy_size = config.dummy_size;
+    this->bucket_size = config.real_bucket_size + config.dummy_size;
+    this->evict_rate = config.evict_rate;
+    this->num_blocks = config.num_blocks;
 
-    this->num_blocks = num_blocks;
+    this->batching = batch;
+    this->lazy_eveiction = lazy;
 
     // this->num_levels = ceil(log10(2 * num_blocks / evict_rate) / log10(2)) - 1;
     this->num_levels = num_levels;
@@ -279,6 +280,33 @@ void OramRing::early_reshuffle(vector<int> buckets){
 
 }
 
+std::vector<int*> OramRing::access(std::vector<Operation> ops, std::vector<int> blockIndices, std::vector<int*> newdata, int pad_l){
+    if(batching){
+        return batch_multi_access_swap_ro(ops, blockIndices, newdata, pad_l);
+    } else{
+        vector<int*> ret;
+        for(int i = 0; i < ops.size(); i++){
+            vector<int*> tmp = batch_multi_access_swap_ro(
+                {ops[i]},
+                {blockIndices[i]},
+                {newdata[i]},
+                1
+            );
+            ret.push_back(tmp[0]);
+        }
+        for(int i = ops.size(); i < pad_l; i++){
+            batch_multi_access_swap_ro(
+                {},
+                {},
+                {},
+                1
+            );
+        }
+        return ret;
+    }
+}
+
+
 /*
     Workflow here:
     1. Find all the leaves
@@ -464,6 +492,10 @@ std::vector<int*> OramRing::batch_multi_access_swap_ro(std::vector<Operation> op
         }
     } 
 
+    if(!lazy_eveiction){
+        evict_and_write_back();   
+    }
+
     return ret;
 }
 
@@ -472,6 +504,10 @@ void OramRing::evict_and_write_back(){
     // find the # evicted paths
     int num_paths = (cnt_delayed_leaves / evict_rate);
     // cout << "evict - num_paths: " << num_paths << endl;
+
+    if(num_paths == 0){
+        return;
+    }
 
     // generate paths in reverse-lexicographical order
     vector<int> leaves;

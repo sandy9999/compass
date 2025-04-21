@@ -252,21 +252,25 @@ SearchStats IndexHNSW::oblivious_search(
 
         auto reponse = interval(t_0);
         t_response += reponse;
+        s_stats.perceived_latency.push_back(reponse);
 
         gcache->reset();
 
         // s_stats.stash_size_after_evict.push_back(gcache->bf->get_stash_size());
 
         auto search = interval(t_0);
+        s_stats.full_latency.push_back(search);
 
         t_search += search;
         t_fetch += stats.oram_fetch;
 
-        std::cout << "-> done: " <<  i << std::endl;
+        if(i % 100 == 0){
+            std::cout << "-> done: " <<  i << std::endl;
+        }
     }
 
 
-    std::cout << "Avg. fetch latency: " <<  t_fetch / n << std::endl;
+    // std::cout << "Avg. fetch latency: " <<  t_fetch / n << std::endl;
     std::cout << "Avg. response latency: " << t_response / n << std::endl;
     std::cout << "Avg. search latency: " <<  t_search / n << std::endl;
 

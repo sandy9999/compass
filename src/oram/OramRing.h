@@ -52,6 +52,9 @@ public:
     int cnt_early_reshuffle;
     int cnt_q;
 
+    bool batching;
+    bool lazy_eveiction;
+
     vector<int> position_map; //array
     vector<OramMetaData> metadata;
 
@@ -61,11 +64,13 @@ public:
     map<std::pair<int, int>, Block*, PairComparator> mmstash;
 
     OramRing(UntrustedStorageInterface* storage,
-            RandForOramInterface* rand_gen, int block_size, int bucket_size, int dummy_size, int evict_rate, int num_blocks, int num_levels, int cached_levels);
+            RandForOramInterface* rand_gen, RingOramConfig config, int num_levels, int cached_levels, bool batch = true, bool lazy = true);
 
     void evict_and_write_back();
 
     void init_cache_top();
+
+    std::vector<int*> access(std::vector<Operation> ops, std::vector<int> blockIndices, std::vector<int*> newdata, int pad_l);
 
     std::vector<int*> batch_multi_access_swap_ro(std::vector<Operation> ops, std::vector<int> blockIndices, std::vector<int*> newdata, int pad_l);
 

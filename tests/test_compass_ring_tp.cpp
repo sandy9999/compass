@@ -187,11 +187,7 @@ int main(int argc, char **argv) {
         OramInterface* oram = new OramRing(
             rss, 
             random, 
-            config.block_size,
-            config.real_bucket_size,
-            config.dummy_size,
-            config.evict_rate,
-            config.num_blocks,
+            config,
             md.num_levels,
             md.oram_cached_levels
         );

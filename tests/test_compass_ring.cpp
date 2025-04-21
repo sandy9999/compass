@@ -94,7 +94,14 @@ int party = 0;
 int port = 8000;
 string address = "127.0.0.1";
 string dataset = "";
-int n = 10;
+int n = -1;
+
+int efspec = -1;
+int efn = -1;
+bool batching = true;
+bool lazy_evict = true;
+bool save_latency = false;
+bool save_accuracy = false;
 
 int main(int argc, char **argv) {
     ArgMapping amap;
@@ -103,6 +110,12 @@ int main(int argc, char **argv) {
     amap.arg("d", dataset, "Dataset: [sift, trip, msmarco, laion]");
     amap.arg("n", n, "# queries");
     amap.arg("ip", address, "IP Address of server");
+    amap.arg("efspec", efspec, "Size of speculation set");
+    amap.arg("efn", efn, "Size of directional filter");
+    amap.arg("batch", batching, "Disable batching");
+    amap.arg("lazy", lazy_evict, "Disable lazy eviction");
+    amap.arg("save_latency", save_latency, "Save latency");
+    amap.arg("save_accuracy", save_accuracy, "Save accuracy");
     amap.parse(argc, argv);
 
     cout << ">>> Setting up..." << endl;
@@ -186,13 +199,11 @@ int main(int argc, char **argv) {
         OramInterface* oram = new OramRing(
             rss, 
             random, 
-            config.block_size,
-            config.real_bucket_size,
-            config.dummy_size,
-            config.evict_rate,
-            config.num_blocks,
+            config,
             md.num_levels,
-            md.oram_cached_levels
+            md.oram_cached_levels,
+            batching,
+            lazy_evict
         );
 
         tprint("Loading ORAM metadata\n", t0);
@@ -249,6 +260,7 @@ int main(int argc, char **argv) {
         {
             size_t d2;
             xq = fvecs_read(md.query_path.c_str(), &d2, &nq);
+            n = n == -1 ? nq : n;
             assert(md.dim == d2 || !"query does not have same dimension as train set");
             assert(n <= nq || !"# queries larger than query set");
         }
@@ -288,62 +300,98 @@ int main(int argc, char **argv) {
         params->efNeighbor = md.ef_neighbor;
         params->efLayer = md.ef_lowest_cached_layer;
         params->efUpperSteps = md.ef_upper_steps;
+        params->efSearch = md.ef_search;
 
-        for(int efs = md.ef_search; efs <= md.ef_search; efs*=2){
-            
-            params->efSearch = efs;
-            
-            // output buffers
-            faiss::idx_t* I = new faiss::idx_t[nq * k];
-            float* D = new float[nq * k];
-
-            tprint("Searching with efs: " + to_string(efs) + "\n", t0);
-
-            double t1 = elapsed();
-
-            faiss::SearchStats s_stats = index->oblivious_search(
-                nq,
-                xq,
-                k,
-                D,
-                I,
-                pq,
-                params
-            );
-
-
-            unsigned long total = 0;
-            for(int nrt : s_stats.nsteps_map[0]){
-                total += nrt;
-            }
-
-            printf("[%.3f s] Search time: %.3f s\n", elapsed() - t0, elapsed() - t1);
-
-            printf("[%.3f s] Computing average round trip: %ld\n", elapsed() - t0, total / nq);
-
-            printf("[%.3f s] Compute recalls\n", elapsed() - t0);
-
-            compute_recall(
-                gt, 
-                gt_size,
-                I,
-                nq,
-                k
-            );
-
-            int* result = new int[nq * k];
-
-            for(int i = 0; i < nq * k; i++){
-                result[i] = I[i];
-            }
-            
-            delete params;
-
-            delete[] result;
-            delete[] I;
-            delete[] D;
-            delete[] gt;
+        if(efn != -1){
+            params->efNeighbor = efn;
         }
+
+        if(efspec != -1){
+            params->efSpec = efspec;
+        }
+        
+        // output buffers
+        faiss::idx_t* I = new faiss::idx_t[nq * k];
+        float* D = new float[nq * k];
+
+        tprint("Searching with efs: " + to_string(md.ef_search) + "\n", t0);
+
+        double t1 = elapsed();
+
+        faiss::SearchStats s_stats = index->oblivious_search(
+            nq,
+            xq,
+            k,
+            D,
+            I,
+            pq,
+            params
+        );
+
+
+        unsigned long total = 0;
+        for(int nrt : s_stats.nsteps_map[0]){
+            total += nrt;
+        }
+
+        printf("[%.3f s] Search time: %.3f s\n", elapsed() - t0, elapsed() - t1);
+
+        printf("[%.3f s] Computing average round trip: %ld\n", elapsed() - t0, total / nq);
+
+        printf("[%.3f s] Compute recalls\n", elapsed() - t0);
+
+        compute_recall(
+            gt, 
+            gt_size,
+            I,
+            nq,
+            k
+        );
+
+        int* result = new int[nq * k];
+
+        for(int i = 0; i < nq * k; i++){
+            result[i] = I[i];
+        }
+
+        if(save_accuracy){
+            // write result if search over the whole query set
+            string result_path = dataset + ".ivecs";
+            ivecs_write(
+                result_path.c_str(), 
+                result, 
+                k,
+                nq
+            );
+        }
+
+        if(save_latency){
+            string perceived_latency_path = "perceived_latency_" + dataset + ".bin";
+            string full_latency_path = "full_latency_" + dataset + ".bin";
+
+            fvecs_write(
+                perceived_latency_path.c_str(),
+                s_stats.perceived_latency.data(),
+                s_stats.perceived_latency.size(),
+                1
+            );
+
+            fvecs_write(
+                full_latency_path.c_str(),
+                s_stats.full_latency.data(),
+                s_stats.full_latency.size(),
+                1
+            );
+
+        }
+
+        delete params;
+
+        delete[] result;
+        delete[] I;
+        delete[] D;
+        delete[] gt;
+        
 
         rss->CloseServer();
     }

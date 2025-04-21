@@ -315,6 +315,8 @@ struct SearchStats {
     std::vector<int> stash_size_before_evict;
     std::vector<int> stash_size_after_evict;
 
+    std::vector<float> perceived_latency;
+    std::vector<float> full_latency;
 
     SearchStats() {}
 };
