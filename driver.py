@@ -2,8 +2,7 @@ import argparse
 import subprocess
 import sys
 
-datasets = ["laion", "sift"]
-mal_datasets = ["laion_mal", "sift_mal"]
+datasets = ["laion", "laion_mal", "sift", "sift_mal", "trip", "trip_mal", "msmarco", "msmarco_mal"]
 
 server_ip = "10.128.0.11"
 
@@ -28,7 +27,6 @@ def run_latency(role, verbose):
     n =100
 
     tc_reset(verbose)
-
     print("> Simulate fast network")
     tc_set_fast(verbose)
     for d in datasets:

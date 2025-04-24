@@ -10,6 +10,6 @@ sudo snap install cmake --classic
 
 # python3 pip
 # google cloud storage
-sudo apt install -y python3-pip
+sudo apt install -y python3-pip ttf-mscorefonts-installer
 pip3 install google-cloud-storage google-cloud-compute paramiko gdown
 pip3 install tcconfig 
