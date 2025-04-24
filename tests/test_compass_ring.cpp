@@ -100,8 +100,8 @@ int efspec = -1;
 int efn = -1;
 bool batching = true;
 bool lazy_evict = true;
-bool save_latency = false;
-bool save_accuracy = false;
+string f_latency = "";
+string f_accuracy = "";
 
 int main(int argc, char **argv) {
     ArgMapping amap;
@@ -114,8 +114,8 @@ int main(int argc, char **argv) {
     amap.arg("efn", efn, "Size of directional filter");
     amap.arg("batch", batching, "Disable batching");
     amap.arg("lazy", lazy_evict, "Disable lazy eviction");
-    amap.arg("save_latency", save_latency, "Save latency");
-    amap.arg("save_accuracy", save_accuracy, "Save accuracy");
+    amap.arg("f_latency", f_latency, "Save latency");
+    amap.arg("f_accuracy", f_accuracy, "Save accuracy");
     amap.parse(argc, argv);
 
     cout << ">>> Setting up..." << endl;
@@ -354,32 +354,28 @@ int main(int argc, char **argv) {
             result[i] = I[i];
         }
 
-        if(save_accuracy){
+        if(f_accuracy != ""){
             // write result if search over the whole query set
-            string result_path = dataset + ".ivecs";
+            // string result_path = dataset + ".ivecs";
             ivecs_write(
-                result_path.c_str(), 
+                f_accuracy.c_str(), 
                 result, 
                 k,
                 nq
             );
         }
 
-        if(save_latency){
-            string perceived_latency_path = "perceived_latency_" + dataset + ".bin";
-            string full_latency_path = "full_latency_" + dataset + ".bin";
+        if(f_latency != ""){
+            // string perceived_latency_path = "perceived_latency_" + dataset + ".bin";
+            // string full_latency_path = "full_latency_" + dataset + ".bin";
+
+            vector<float> latency = s_stats.perceived_latency;
+            latency.insert(latency.end(), s_stats.full_latency.begin(), s_stats.full_latency.end());
 
             fvecs_write(
-                perceived_latency_path.c_str(),
-                s_stats.perceived_latency.data(),
-                s_stats.perceived_latency.size(),
-                1
-            );
-
-            fvecs_write(
-                full_latency_path.c_str(),
-                s_stats.full_latency.data(),
-                s_stats.full_latency.size(),
+                f_latency.c_str(),
+                latency.data(),
+                latency.size(),
                 1
             );
 

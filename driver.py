@@ -32,14 +32,17 @@ def run_latency(role, verbose):
     print("> Simulate fast network")
     tc_set_fast(verbose)
     for d in datasets:
-        cmd = ["./test_compass_ring", "r=" + str(r), "d=" + d, "ip="+server_ip, "n="+str(n)]
+        f_latency = "latency_fast_" + d + ".fvecs"
+        cmd = ["./test_compass_ring", "r=" + str(r), "d=" + d, "ip="+server_ip, "n="+str(n), "f_latency="+f_latency]
         print("Executing: ", cmd)
         subprocess.run(cmd, cwd="./build/", capture_output=not verbose, check=True)
 
     print("> Simulate slow network")
+    tc_reset(verbose)
     tc_set_slow(verbose)
     for d in datasets:
-        cmd = ["./test_compass_ring", "r=" + str(r), "d=" + d, "ip="+server_ip]
+        f_latency = "latency_slow_" + d + ".fvecs"
+        cmd = ["./test_compass_ring", "r=" + str(r), "d=" + d, "ip="+server_ip, "n="+str(n), "f_latency="+f_latency]
         print("Executing: ", cmd)
         subprocess.run(cmd, cwd="./build/", capture_output=not verbose, check=True)
     
