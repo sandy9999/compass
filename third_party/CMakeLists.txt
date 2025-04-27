@@ -12,3 +12,5 @@ target_include_directories(net INTERFACE net/)
 add_library(evp openssl/evp.h openssl/evp.cpp)
 target_include_directories(evp PUBLIC openssl/)
 target_link_libraries(evp PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+
+add_subdirectory(SEAL)
