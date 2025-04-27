@@ -20,12 +20,12 @@
         "base_path": "../data/dataset/sift/base.fvecs",
         "query_path": "../data/dataset/sift/query.fvecs",
         "gt_path": "../data/dataset/sift/gt.ivecs",
-        "buckets_path": "../data/snap_ring_2/server/sift/buckets.bin",
-        "graph_cache_path": "../data/snap_ring_2/client/sift/graph_cache.bin",
-        "hash_path": "../data/snap_ring_2/client/sift/hash.bin",
-        "metadata_path": "../data/snap_ring_2/client/sift/metadata.bin",
-        "pos_map_path": "../data/snap_ring_2/client/sift/position_map.bin",
-        "block_map_path": "../data/snap_ring_2/client/sift/block_mapping.bin"
+        "buckets_path": "../data/snap/server/sift/buckets.bin",
+        "graph_cache_path": "../data/snap/client/sift/graph_cache.bin",
+        "hash_path": "../data/snap/client/sift/hash.bin",
+        "metadata_path": "../data/snap/client/sift/metadata.bin",
+        "pos_map_path": "../data/snap/client/sift/position_map.bin",
+        "block_map_path": "../data/snap/client/sift/block_mapping.bin"
     },
 
     "sift_mal": {
@@ -49,12 +49,12 @@
         "base_path": "../data/dataset/sift/base.fvecs",
         "query_path": "../data/dataset/sift/query.fvecs",
         "gt_path": "../data/dataset/sift/gt.ivecs",
-        "buckets_path": "../data/snap_ring_2/server/sift/buckets.bin",
-        "graph_cache_path": "../data/snap_ring_2/client/sift/graph_cache.bin",
-        "hash_path": "../data/snap_ring_2/client/sift/hash.bin",
-        "metadata_path": "../data/snap_ring_2/client/sift/metadata.bin",
-        "pos_map_path": "../data/snap_ring_2/client/sift/position_map.bin",
-        "block_map_path": "../data/snap_ring_2/client/sift/block_mapping.bin"
+        "buckets_path": "../data/snap/server/sift/buckets.bin",
+        "graph_cache_path": "../data/snap/client/sift/graph_cache.bin",
+        "hash_path": "../data/snap/client/sift/hash.bin",
+        "metadata_path": "../data/snap/client/sift/metadata.bin",
+        "pos_map_path": "../data/snap/client/sift/position_map.bin",
+        "block_map_path": "../data/snap/client/sift/block_mapping.bin"
     },
 
     "laion": {
@@ -78,12 +78,12 @@
         "base_path": "../data/dataset/laion1m/100k/laion_base.fvecs",
         "query_path": "../data/dataset/laion1m/laion_query.fvecs",
         "gt_path": "../data/dataset/laion1m/100k/gt.ivecs",
-        "buckets_path": "../data/snap_ring_2/server/laion/buckets.bin",
-        "graph_cache_path": "../data/snap_ring_2/client/laion/graph_cache.bin",
-        "hash_path": "../data/snap_ring_2/client/laion/hash.bin",
-        "metadata_path": "../data/snap_ring_2/client/laion/metadata.bin",
-        "pos_map_path": "../data/snap_ring_2/client/laion/position_map.bin",
-        "block_map_path": "../data/snap_ring_2/client/laion/block_mapping.bin"
+        "buckets_path": "../data/snap/server/laion/buckets.bin",
+        "graph_cache_path": "../data/snap/client/laion/graph_cache.bin",
+        "hash_path": "../data/snap/client/laion/hash.bin",
+        "metadata_path": "../data/snap/client/laion/metadata.bin",
+        "pos_map_path": "../data/snap/client/laion/position_map.bin",
+        "block_map_path": "../data/snap/client/laion/block_mapping.bin"
     },
 
     "laion_mal": {
@@ -107,12 +107,12 @@
         "base_path": "../data/dataset/laion1m/100k/laion_base.fvecs",
         "query_path": "../data/dataset/laion1m/laion_query.fvecs",
         "gt_path": "../data/dataset/laion1m/100k/gt.ivecs",
-        "buckets_path": "../data/snap_ring_2/server/laion/buckets.bin",
-        "graph_cache_path": "../data/snap_ring_2/client/laion/graph_cache.bin",
-        "hash_path": "../data/snap_ring_2/client/laion/hash.bin",
-        "metadata_path": "../data/snap_ring_2/client/laion/metadata.bin",
-        "pos_map_path": "../data/snap_ring_2/client/laion/position_map.bin",
-        "block_map_path": "../data/snap_ring_2/client/laion/block_mapping.bin"
+        "buckets_path": "../data/snap/server/laion/buckets.bin",
+        "graph_cache_path": "../data/snap/client/laion/graph_cache.bin",
+        "hash_path": "../data/snap/client/laion/hash.bin",
+        "metadata_path": "../data/snap/client/laion/metadata.bin",
+        "pos_map_path": "../data/snap/client/laion/position_map.bin",
+        "block_map_path": "../data/snap/client/laion/block_mapping.bin"
     },
 
     "trip": {
@@ -136,12 +136,12 @@
         "base_path": "../data/dataset/trip_distilbert/passages.fvecs",
         "query_path": "../data/dataset/trip_distilbert/queries.fvecs",
         "gt_path": "../data/dataset/trip_distilbert/gt_10.ivecs",
-        "buckets_path": "../data/snap_ring_2/server/trip/buckets.bin",
-        "graph_cache_path": "../data/snap_ring_2/client/trip/graph_cache.bin",
-        "hash_path": "../data/snap_ring_2/client/trip/hash.bin",
-        "metadata_path": "../data/snap_ring_2/client/trip/metadata.bin",
-        "pos_map_path": "../data/snap_ring_2/client/trip/position_map.bin",
-        "block_map_path": "../data/snap_ring_2/client/trip/block_mapping.bin"
+        "buckets_path": "../data/snap/server/trip/buckets.bin",
+        "graph_cache_path": "../data/snap/client/trip/graph_cache.bin",
+        "hash_path": "../data/snap/client/trip/hash.bin",
+        "metadata_path": "../data/snap/client/trip/metadata.bin",
+        "pos_map_path": "../data/snap/client/trip/position_map.bin",
+        "block_map_path": "../data/snap/client/trip/block_mapping.bin"
     },
 
     "trip_mal": {
@@ -165,12 +165,12 @@
         "base_path": "../data/dataset/trip_distilbert/passages.fvecs",
         "query_path": "../data/dataset/trip_distilbert/queries.fvecs",
         "gt_path": "../data/dataset/trip_distilbert/gt_10.ivecs",
-        "buckets_path": "../data/snap_ring_2/server/trip/buckets.bin",
-        "graph_cache_path": "../data/snap_ring_2/client/trip/graph_cache.bin",
-        "hash_path": "../data/snap_ring_2/client/trip/hash.bin",
-        "metadata_path": "../data/snap_ring_2/client/trip/metadata.bin",
-        "pos_map_path": "../data/snap_ring_2/client/trip/position_map.bin",
-        "block_map_path": "../data/snap_ring_2/client/trip/block_mapping.bin"
+        "buckets_path": "../data/snap/server/trip/buckets.bin",
+        "graph_cache_path": "../data/snap/client/trip/graph_cache.bin",
+        "hash_path": "../data/snap/client/trip/hash.bin",
+        "metadata_path": "../data/snap/client/trip/metadata.bin",
+        "pos_map_path": "../data/snap/client/trip/position_map.bin",
+        "block_map_path": "../data/snap/client/trip/block_mapping.bin"
     },
 
     "msmarco": {
@@ -194,12 +194,12 @@
         "base_path": "../data/dataset/msmarco_bert/passages.fvecs",
         "query_path": "../data/dataset/msmarco_bert/queries.fvecs",
         "gt_path": "../data/dataset/msmarco_bert/gt_10.ivecs",
-        "buckets_path": "../data/snap_ring_2/server/msmarco/buckets.bin",
-        "graph_cache_path": "../data/snap_ring_2/client/msmarco/graph_cache.bin",
-        "hash_path": "../data/snap_ring_2/client/msmarco/hash.bin",
-        "metadata_path": "../data/snap_ring_2/client/msmarco/metadata.bin",
-        "pos_map_path": "../data/snap_ring_2/client/msmarco/position_map.bin",
-        "block_map_path": "../data/snap_ring_2/client/msmarco/block_mapping.bin"
+        "buckets_path": "../data/snap/server/msmarco/buckets.bin",
+        "graph_cache_path": "../data/snap/client/msmarco/graph_cache.bin",
+        "hash_path": "../data/snap/client/msmarco/hash.bin",
+        "metadata_path": "../data/snap/client/msmarco/metadata.bin",
+        "pos_map_path": "../data/snap/client/msmarco/position_map.bin",
+        "block_map_path": "../data/snap/client/msmarco/block_mapping.bin"
     },
 
     "msmarco_mal": {
@@ -223,12 +223,12 @@
         "base_path": "../data/dataset/msmarco_bert/passages.fvecs",
         "query_path": "../data/dataset/msmarco_bert/queries.fvecs",
         "gt_path": "../data/dataset/msmarco_bert/gt_10.ivecs",
-        "buckets_path": "../data/snap_ring_2/server/msmarco/buckets.bin",
-        "graph_cache_path": "../data/snap_ring_2/client/msmarco/graph_cache.bin",
-        "hash_path": "../data/snap_ring_2/client/msmarco/hash.bin",
-        "metadata_path": "../data/snap_ring_2/client/msmarco/metadata.bin",
-        "pos_map_path": "../data/snap_ring_2/client/msmarco/position_map.bin",
-        "block_map_path": "../data/snap_ring_2/client/msmarco/block_mapping.bin"
+        "buckets_path": "../data/snap/server/msmarco/buckets.bin",
+        "graph_cache_path": "../data/snap/client/msmarco/graph_cache.bin",
+        "hash_path": "../data/snap/client/msmarco/hash.bin",
+        "metadata_path": "../data/snap/client/msmarco/metadata.bin",
+        "pos_map_path": "../data/snap/client/msmarco/position_map.bin",
+        "block_map_path": "../data/snap/client/msmarco/block_mapping.bin"
     }
 
 }

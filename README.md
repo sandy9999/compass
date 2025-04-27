@@ -8,7 +8,6 @@ This is the artifact for the paper "Compass: Encrypted Semantic Search with High
 ## Overview & Setup
 
 
-
 ## Reproducing results 
 
 To reproduce the results in the paper, we have the following settings:

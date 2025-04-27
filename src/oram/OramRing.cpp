@@ -77,7 +77,7 @@ void OramMetaData::print_stat(){
 // }
 
 
-OramRing::OramRing(UntrustedStorageInterface* storage, RandForOramInterface* rand_gen, RingOramConfig config, int num_levels, int cached_levels, bool batch, bool lazy) {
+OramRing::OramRing(RemoteRing* storage, RandForOramInterface* rand_gen, RingOramConfig config, int num_levels, int cached_levels, bool batch, bool lazy) {
     this->storage = storage;
     this->rand_gen = rand_gen;
     this->block_size = config.block_size;
@@ -103,7 +103,7 @@ OramRing::OramRing(UntrustedStorageInterface* storage, RandForOramInterface* ran
     this->num_leaves = pow(2, num_levels-1);
     this->rand_gen->setBound(num_leaves);
     // cout << "Set capacity" << endl; 
-    this->storage->setCapacity(num_buckets);
+    // this->storage->setCapacity(num_buckets);
     // cout << "Set capacity done" << endl; 
     this->position_map = vector<int>(num_blocks);
     this->metadata = vector<OramMetaData>(num_buckets);
@@ -159,7 +159,7 @@ void OramRing::init_cache_top(){
 
     //retrieve
     std::vector<Block*> blocks;
-    ((RemoteServerStorage*)storage)->ReadBlockBatchAsBlockRing(positions, offsets, blocks, valids, false);
+    storage->ReadBlockBatchAsBlockRing(positions, offsets, blocks, valids, false);
 
     for(auto b : blocks){
         // cached_oram.insert({b->index, b});
@@ -244,7 +244,7 @@ void OramRing::early_reshuffle(vector<int> buckets){
     }
 
     std::vector<Block*> blocks;
-    ((RemoteServerStorage*)storage)->ReadBlockBatchAsBlockRing(positions, offsets, blocks, valids, true);
+    storage->ReadBlockBatchAsBlockRing(positions, offsets, blocks, valids, true);
 
     std::random_device rd;  
     std::mt19937 g(rd());
@@ -276,7 +276,7 @@ void OramRing::early_reshuffle(vector<int> buckets){
     }
 
     // write back to server
-    ((RemoteServerStorage*)storage)->WriteBucketBatchMapAsBlockRing(reshuffled_buckets, bucket_size, true);
+    storage->WriteBucketBatchMapAsBlockRing(reshuffled_buckets, bucket_size, true);
 
 }
 
@@ -437,7 +437,7 @@ std::vector<int*> OramRing::batch_multi_access_swap_ro(std::vector<Operation> op
         // Batch read
         std::vector<Block*> blocks;
         // auto t_0 = std::chrono::high_resolution_clock::now();
-        ((RemoteServerStorage*)storage)->ReadBlockBatchAsBlockRingXor(positions, offsets, blocks, pad_l, valids);
+        storage->ReadBlockBatchAsBlockRingXor(positions, offsets, blocks, pad_l, valids);
 
         // cout << "saving data" << endl;
 
@@ -563,7 +563,7 @@ void OramRing::evict_and_write_back(){
 
     // Fetch the paths from remote
     std::vector<Block*> blocks;
-    ((RemoteServerStorage*)storage)->ReadBlockBatchAsBlockRing(positions, offsets, blocks, valids, false);
+    storage->ReadBlockBatchAsBlockRing(positions, offsets, blocks, valids, false);
 
     // Insert each block into stash
     for(Block* b : blocks){
@@ -647,7 +647,7 @@ void OramRing::evict_and_write_back(){
         }
     } 
 
-    ((RemoteServerStorage*)storage)->WriteBucketBatchMapAsBlockRing(evicted_storage, bucket_size, false);
+    storage->WriteBucketBatchMapAsBlockRing(evicted_storage, bucket_size, false);
 
     cnt_delayed_leaves = 0;
     cnt_q ++;

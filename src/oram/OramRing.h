@@ -7,7 +7,8 @@
 #include "OramInterface.h"
 #include "RandForOramInterface.h"
 // #include "UntrustedStorageInterface.h"
-#include "RemoteServerStorage.h"
+// #include "RemoteServerStorage.h"
+#include "RemoteRing.h"
 #include <cmath>
 #include <map>
 #include <set>
@@ -28,7 +29,7 @@ public:
 
 class OramRing : public OramInterface {
 public:
-    UntrustedStorageInterface* storage;
+    RemoteRing* storage;
     RandForOramInterface* rand_gen;
     int G;
 
@@ -63,7 +64,7 @@ public:
 
     map<std::pair<int, int>, Block*, PairComparator> mmstash;
 
-    OramRing(UntrustedStorageInterface* storage,
+    OramRing(RemoteRing* storage,
             RandForOramInterface* rand_gen, RingOramConfig config, int num_levels, int cached_levels, bool batch = true, bool lazy = true);
 
     void evict_and_write_back();

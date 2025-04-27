@@ -13,9 +13,12 @@ set(ORAM_SRC
     csprng.cpp
     FileReader.cpp
     OramRing.cpp 
+    OramReadPathEviction.cpp 
     RandomForOram.cpp 
     RemoteServerStorage.cpp 
     RemoteServerRing.cpp 
+    RemoteRing.cpp 
+    RemotePath.cpp 
     utils_uring.cpp
 )
 

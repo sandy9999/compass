@@ -14,8 +14,9 @@
 #include <fstream>
 
 // oram
-#include "RemoteServerStorage.h"
-#include "RemoteServerRing.h"
+// #include "RemoteServerStorage.h"
+// #include "RemoteServerRing.h"
+// #include "RemoteRing.h"
 #include "RandForOramInterface.h"
 #include "RandomForOram.h"
 #include "OramRing.h"
@@ -142,9 +143,13 @@ int main(int argc, char **argv) {
     // cout << "bucket_size: " << md.bucket_size << endl;
     // cout << "sbucket_size: " << SBucket::getCipherSize() << endl;
 
-    RemoteServerStorage* rss = new RemoteServerStorage(config.block_size, io, isServer, config.num_levels, md.integrity, config);
+    // RemoteServerStorage* rss = new RemoteServerStorage(config.block_size, io, isServer, config.num_levels, md.integrity, config);
 
     RandForOramInterface* random = new RandomForOram();
+
+    bool in_memory = true;
+    RemoteRing* remote_storage = new RemoteRing(io, config, isServer, in_memory, md.integrity);
+    
 
     long comm;
     long round;
@@ -156,18 +161,17 @@ int main(int argc, char **argv) {
         tprint("Starting remote server... \n", t0);
         
         bool in_memory = true;
-        RemoteServerRing server = RemoteServerRing(io, config.num_buckets, config.bucket_size, in_memory, md.integrity, config);
 
         tprint("Faster initialization...\n", t0);
 
-        server.load(md.buckets_path.c_str());
+        remote_storage->load_server_state(md.buckets_path.c_str());
         
         bool ready;
         bf_io->send_data(&ready, sizeof(bool));
 
         if(md.integrity){
-            server.load_hash(md.hash_path.c_str());
-            server.sync_hash();
+            remote_storage->load_server_hash(md.hash_path.c_str());
+            remote_storage->sync_roots();
         }
 
         tprint("Run server...\n", t0);
@@ -175,7 +179,7 @@ int main(int argc, char **argv) {
         comm = io->counter;
         round = io->num_rounds;
         
-		server.RunServer();
+		remote_storage->run_server();
     } else{
 
         // 14KB
@@ -183,13 +187,14 @@ int main(int argc, char **argv) {
         // Client
         tprint("Initializing ORAM... \n", t0);
 
-        rss->setCapacity(config.num_buckets, md.integrity);
         OramInterface* oram = new OramRing(
-            rss, 
+            remote_storage, 
             random, 
             config,
             md.num_levels,
-            md.oram_cached_levels
+            md.oram_cached_levels,
+            true,
+            true
         );
 
         tprint("Loading ORAM metadata\n", t0);
@@ -241,7 +246,7 @@ int main(int argc, char **argv) {
             bf_io->recv_data(&ready, sizeof(bool));
 
             if(md.integrity){
-                rss->sync_hash_roots();
+                remote_storage->sync_roots();
             }
             
         }
@@ -339,7 +344,7 @@ int main(int argc, char **argv) {
             delete[] D;
         }
 
-        rss->CloseServer();
+        remote_storage->close_server();
     }
 
     std::cout << "Communication cost: " << io->counter - comm << std::endl;

@@ -622,9 +622,9 @@ class FakeBlockFetcher : public BlockFetcher{
         fclose(f);
     }
 
-    void insecure_load(RemoteServerStorage* graph_rss){
-        graph_rss->insecureLoad(bkts);
-    }
+    // void insecure_load(RemoteServerStorage* graph_rss){
+    //     graph_rss->insecureLoad(bkts);
+    // }
 
     FakeBlockFetcher(
         int ntotal,
@@ -781,9 +781,9 @@ class FakeBlockFetcherRing : public BlockFetcher{
         fclose(f);
     }
 
-    void insecure_load(RemoteServerStorage* graph_rss){
-        // graph_rss->insecureLoad(bkts);
-    }
+    // void insecure_load(RemoteServerStorage* graph_rss){
+    //     // graph_rss->insecureLoad(bkts);
+    // }
 
     FakeBlockFetcherRing(
         int ntotal,
