@@ -10,9 +10,9 @@ from google.cloud import compute_v1
 project_id = "encrypted-search-404320"
 zone = "us-central1-c"
 vpc_name = "skypilot-vpc"
-image_name = "tp-image"
-private_key_path = "/home/clive/.ssh/sky-key"
-user_name = "clive"
+image_name = "artifact"
+private_key_path = "~/.ssh/compass_artifact"
+user_name = "compass"
 
 port = 9000
 server_ip = "10.128.15.198"

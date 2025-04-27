@@ -9,6 +9,7 @@
 #include "macro.h"
 // #include "OramDeterministic.h"
 #include "OramRing.h"
+#include "OramLeak.h"
 #include "evp.h"
 
 // #define DIM 128
@@ -490,6 +491,150 @@ class ObliviousBlockFetcherRing : public BlockFetcher{
     }
 
 };
+
+class LeakBlockFetcherRing : public BlockFetcher{
+
+    OramInterface* oram;
+    
+    int graph_cnt;
+
+    public:
+    vector<OptNode> get_blocks(vector<node_id_t> node_ids, vector<int> ls, int pad_l){
+        vector<block_id_t> bids;
+        int len = node_ids.size();
+        for(int i = 0; i < len; i++){
+            node_id_t node_id = node_ids[i];
+            int l = ls[i];
+            bids.push_back(node_to_block[node_id][l]);
+        }
+
+        vector<int*> accessed = ((OramLeak*)oram)->access(
+            vector<OramInterface::Operation>(len, OramInterface::Operation::READ),
+            bids,
+            vector<int*>(len, NULL),
+            pad_l
+        );
+
+        vector<OptNode> ret;
+        for(int i = 0; i < accessed.size(); i++){
+            ret.push_back(OptNode(accessed[i], ((OramLeak*)oram)->block_size));
+            delete[] accessed[i];
+        }
+        return ret;
+    }
+
+    void evict(){
+        ((OramLeak*)oram)->evict_and_write_back();
+        // ((OramLeak*)oram)->clear_hash_map();
+    } 
+
+    
+    OptNode* get_block(block_id_t node_id, int l) {
+        assert(0);
+        block_id_t bid = node_to_block[node_id][l];
+        // cout << "get_block: " << bid << endl;
+        // cout << "node_id: " << node_id << endl;
+        // cout << "l: " << l << endl;
+        // assert(0);
+        int* accessed = oram->batch_access(OramInterface::Operation::READ, bid, NULL);
+        // unsigned char ptx_text[1024];
+        // int ptx_len = decrypt_wrapper(tmp, 784, ptx_text);
+
+        // cout << "2" << endl;
+        OptNode* b = new OptNode(accessed,  ((OramLeak*)oram)->block_size);
+        delete accessed;
+        // cout << "3" << endl;
+        return b;
+    }
+
+    block_id_t add_block(OptNode* on) override {
+        block_id_t bid = graph_cnt;
+        graph_cnt++;
+
+        
+        oram->batch_access(OramInterface::Operation::WRITE, bid, on->get_int_data());
+
+        node_id_t nid = on->get_id();
+        node_to_block[nid][on->get_layer()] = bid;
+        
+        return bid;
+    }
+
+
+    block_id_t add_block_with_list(OptNode* on, vector<node_id_t> nlist) override {
+        block_id_t bid = graph_cnt;
+        graph_cnt++;
+
+        oram->batch_access(OramInterface::Operation::WRITE, bid, on->get_int_data());
+
+        for(node_id_t nid : nlist){
+            node_to_block[nid][on->get_layer()] = bid;
+        }
+        return bid;
+    }
+
+    void sync_block_mapping(NetIO*io){
+
+        int ntotal = node_to_block.size();
+        int nlevels = node_to_block[0].size();
+
+        int* data = new int[ntotal*nlevels];
+        io->recv_data(data, ntotal*nlevels*sizeof(int));
+
+        for(int i = 0; i < ntotal; i++){
+            memcpy(node_to_block[i].data(), data + i * nlevels, nlevels*sizeof(int));
+        }
+
+        // io->recv_data(coord_to_block.data(), coord_to_block.size()*sizeof(int));
+
+        // cout << "synced block mapping: ";
+        // cout << endl;
+    }
+
+     void read_block_mapping(const char* fname){
+
+        int ntotal = node_to_block.size();
+        int nlevels = node_to_block[0].size();
+
+        int* data = new int[ntotal*nlevels];
+
+        FILE* f = fopen(fname, "r");
+        if (!f) {
+            fprintf(stderr, "could not open %s\n", fname);
+            perror("");
+            abort();
+        }
+        fread(data, 1, ntotal*nlevels*sizeof(int), f);
+        fclose(f);
+
+        for(int i = 0; i < ntotal; i++){
+            memcpy(node_to_block[i].data(), data + i * nlevels, nlevels*sizeof(int));
+        }
+
+        // io->recv_data(coord_to_block.data(), coord_to_block.size()*sizeof(int));
+
+        // cout << "synced block mapping: ";
+        // cout << endl;
+
+        delete[] data;
+    }
+
+    // int get_stash_size(){
+    //     return oram->getStashSize();
+    // }
+
+    LeakBlockFetcherRing(
+        int ntotal,
+        int nlevels,
+        OramInterface* oram) 
+        : BlockFetcher(ntotal, nlevels), 
+            oram(oram),
+            graph_cnt(0){
+
+    }
+
+};
+
 
 
 class FakeBlockFetcher : public BlockFetcher{

@@ -31,7 +31,7 @@ int OramMetaData::GetBlockOffset(int block_id, bool& real){
         if(block_id == block_ids[i] && valids[i] == 1){
             ret = i;
             real = true;
-            valids[i] = 0;
+            // valids[i] = 0;
             return ret;
         }
         if(!dummy_found){
@@ -48,7 +48,7 @@ int OramMetaData::GetBlockOffset(int block_id, bool& real){
     //     cout << id << " ";
     // }
     // cout << endl;
-    valids[dummy_ret] = 0;
+    // valids[dummy_ret] = 0;
     return dummy_ret;
 }
 
