@@ -16,6 +16,6 @@ def download_public_bucket(bucket_name, destination_dir):
 
 # Usage
 bucket_name = 'compass_osdi'
-destination_dir = './'
+destination_dir = './data/'
 
 download_public_bucket(bucket_name, destination_dir)

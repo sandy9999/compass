@@ -7,6 +7,25 @@ This is the artifact for the paper "Compass: Encrypted Semantic Search with High
 
 ## Overview & Setup
 
+### Dependencies
+
+```
+./script/config.sh
+```
+
+### Dataset
+
+```
+python3 ./script/gcp_download.py
+```
+
+### Build 
+
+```
+mkdir build && cd build
+cmake ..
+make
+```
 
 ## Reproducing results 
 
