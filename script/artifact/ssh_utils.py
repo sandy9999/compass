@@ -36,11 +36,16 @@ def execute_commands_queit(instance_name, ip, cmds, private_key_path, user_name,
                     if channel.recv_ready():
                         output = channel.recv(1024).decode('utf-8')  # Adjust buffer size if necessary
                         print(output, end="")  # Print the output without adding extra newlines
+
+                    # stderr
+                    if channel.recv_stderr_ready():
+                        error_output = channel.recv_stderr(1024).decode('utf-8')
+                        print(error_output, end="")
                     
                     # Check if the command is finished
-                    if channel.exit_status_ready():
-                        output = channel.recv(1024).decode('utf-8')  # Adjust buffer size if necessary
-                        print(output, end="")  # Print the output without adding extra newlines
+                    if channel.exit_status_ready() and not channel.recv_ready() and not channel.recv_stderr_ready():
+                        # output = channel.recv(1024).decode('utf-8')  # Adjust buffer size if necessary
+                        # print(output, end="")  # Print the output without adding extra newlines
                         break
 
                     # Prevent high CPU usage in the loop

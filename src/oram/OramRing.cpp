@@ -31,6 +31,40 @@ int OramMetaData::GetBlockOffset(int block_id, bool& real){
         if(block_id == block_ids[i] && valids[i] == 1){
             ret = i;
             real = true;
+            valids[i] = 0;
+            return ret;
+        }
+        if(!dummy_found){
+            if(block_ids[i] == -1 && valids[i] == 1){
+                dummy_ret = i;
+                // TODO: insecure workaround, always use first dummy
+                dummy_found = true;
+            }
+        }
+    }
+
+    // cout << "GetBlockOffset for "<< block_id << " : ";
+    // for(auto id : block_ids){
+    //     cout << id << " ";
+    // }
+    // cout << endl;
+    valids[dummy_ret] = 0;
+    return dummy_ret;
+}
+
+int OramMetaData::GetBlockOffsetLeak(int block_id, bool& real){
+    int ret = -1;
+
+    bool dummy_found = false;
+    int dummy_ret = -1;
+
+    // This implementation is insecure
+    // Should randomly sample from a dummy instead of linear traversal
+
+    for(int i = 0; i < block_ids.size(); i++){
+        if(block_id == block_ids[i] && valids[i] == 1){
+            ret = i;
+            real = true;
             // valids[i] = 0;
             return ret;
         }

@@ -274,7 +274,7 @@ std::vector<int*> OramLeak::batch_multi_access_swap_ro(std::vector<Operation> op
         for (int l = num_levels - 1; l >= num_cached_levels; l--) {
             int pos = P(oldLeaf, l);
             bool real = false;
-            int offset = metadata[pos].GetBlockOffset(block_id, real);
+            int offset = metadata[pos].GetBlockOffsetLeak(block_id, real);
             if(real){
                 positions.push_back(pos);
                 offsets.push_back(offset);

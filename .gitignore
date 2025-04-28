@@ -1,6 +1,7 @@
 .vscode/
 build/
 data/*/
+script/artifact/results/*
 tmp/
 *.out
 *__pycache__/

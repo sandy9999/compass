@@ -23,6 +23,7 @@ public:
     // OramMetaData();
 
     int GetBlockOffset(int block_id, bool& real); 
+    int GetBlockOffsetLeak(int block_id, bool& real); 
     void print_stat(); 
     // int ShuffleAndReset();
 };
