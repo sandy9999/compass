@@ -53,7 +53,7 @@ def prepare_instance(instance):
         cmds,
         PRIVATE_KEY_PATH,
         USER_NAME,
-        True
+        False
     )
 
 def tc_reset(instance):
@@ -167,7 +167,7 @@ def run_compass_accuracy(instance):
 
     return 
 
-def run_compass_laetncy(server_instance, client_instance):
+def run_compass_latency(server_instance, client_instance):
 
     n = 100
 
@@ -242,6 +242,9 @@ def run_compass_laetncy(server_instance, client_instance):
     
 
     print("Fetch results...")
+
+    remote_fpath_list = ["/home/artifact/compass/build/" + f for f in remote_fpath_list]
+
     scp_from_remote(
         c_instance["internal_ip"],
         USER_NAME,
@@ -255,26 +258,188 @@ def run_compass_laetncy(server_instance, client_instance):
 def run_baseline_accuracy():
     return
 
+def run_ablation_accuracy(instance):
+
+    d = "msmarco" 
+
+    # prepare instance
+    print("Preparing instance...")
+    prepare_instance(instance)
+
+    print("Run exp...")
+    s_cmds = []
+    c_cmds = []
+
+    accuracy_file_list = []
+    
+    # fix efn
+    efn = 24
+    efspec = 1
+    while efspec <= 16:
+        f_accuracy  = f"ablation_accuracy_{d}_{efspec}_{efn}.ivecs"
+        accuracy_file_list.append(f_accuracy)
+        s = "cd compass/build/ && " + f"./test_compass_accuracy r=1 d={d} efn={efn} efspec={efspec}"
+        c = "cd compass/build/ && " + f"./test_compass_accuracy r=2 d={d} efn={efn} efspec={efspec} f_accuracy={f_accuracy}"
+        s_cmds.append(s)
+        c_cmds.append(c)
+        efspec = efspec*2
+
+    # fix efspec
+    efspec = 8
+    efn = 1
+    while efn <= 256:
+        f_accuracy  = f"ablation_accuracy_{d}_{efspec}_{efn}.ivecs"
+        accuracy_file_list.append(f_accuracy)
+        s = "cd compass/build/ && " + f"./test_compass_accuracy r=1 d={d} efn={efn} efspec={efspec}"
+        c = "cd compass/build/ && " + f"./test_compass_accuracy r=2 d={d} efn={efn} efspec={efspec} f_accuracy={f_accuracy}"
+        s_cmds.append(s)
+        c_cmds.append(c)
+        efn = efn*2
+
+    # run accuracy
+    for s, c in zip(s_cmds, c_cmds):
+
+        threads = []
+
+        s_thread = threading.Thread(target=execute_commands_queit, args=(instance["name"], instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
+        c_thread = threading.Thread(target=execute_commands_queit, args=(instance["name"], instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+        
+        threads.append(s_thread)
+        threads.append(c_thread)
+        s_thread.start()
+        c_thread.start()
+
+        for thread in threads:
+            thread.join()
+
+    # fetch results
+    remote_fpath_list = ["/home/artifact/compass/build/" + f for f in accuracy_file_list]
+
+
+    scp_from_remote(
+        instance["internal_ip"],
+        USER_NAME,
+        PRIVATE_KEY_PATH,
+        remote_fpath_list, 
+        "./script/artifact/results/"
+    )
+    
+    return 
+
+def run_ablation_latency(server_instance, client_instance):
+
+    n = 10
+    d="msmarco"
+
+    # prepare instance
+    print("Preparing instance...")
+    prepare_instance(server_instance)
+    prepare_instance(client_instance)
+
+    # slow network
+    tc_reset(server_instance)
+    tc_reset(client_instance)
+    tc_slow(server_instance)
+    tc_slow(client_instance)
+
+    # prepare cmds
+    latency_file_list = []
+    s_cmds = []
+    c_cmds = []
+
+     # fix efn
+    efn = 24
+    efspec = 1
+    while efspec <= 16:
+        f_latency  = f"ablation_latency_{d}_{efspec}_{efn}.fvecs"
+        latency_file_list.append(f_latency)
+        s = "cd compass/build/ && " + f"./test_compass_ring r=1 d={d} n={n} efn={efn} efspec={efspec} ip={server_instance['internal_ip']}"
+        c = "cd compass/build/ && " + f"./test_compass_ring r=2 d={d} n={n} efn={efn} efspec={efspec} ip={server_instance['internal_ip']} f_latency={f_latency}"
+        s_cmds.append(s)
+        c_cmds.append(c)
+        efspec = efspec*2
+
+    # fix efspec
+    efspec = 8
+    efn = 1
+    while efn <= 256:
+        f_latency  = f"ablation_latency_{d}_{efspec}_{efn}.ivecs"
+        latency_file_list.append(f_latency)
+        s = "cd compass/build/ && " + f"./test_compass_ring r=1 d={d} n={n} efn={efn} efspec={efspec} ip={server_instance['internal_ip']}"
+        c = "cd compass/build/ && " + f"./test_compass_ring r=2 d={d} n={n} efn={efn} efspec={efspec} ip={server_instance['internal_ip']} f_latency={f_latency}"
+        s_cmds.append(s)
+        c_cmds.append(c)
+        efn = efn*2
+    
+    # disable lazy_eviction
+    f_latency  = f"ablation_accuracy_{d}_lazy.ivecs"
+    latency_file_list.append(f_latency)
+    s_lazy = "cd compass/build/ && " + f"./test_compass_ring r=1 d={d} n={n} lazy=0 ip={server_instance['internal_ip']}"
+    c_lazy = "cd compass/build/ && " + f"./test_compass_ring r=2 d={d} n={n} lazy=0 ip={server_instance['internal_ip']} f_latency={f_latency}"
+    s_cmds.append(s_lazy)
+    c_cmds.append(c_lazy)
+
+    # vanilla ring oram
+    f_latency  = f"ablation_accuracy_{d}_vanilla.ivecs"
+    latency_file_list.append(f_latency)
+    s_vanilla = "cd compass/build/ && " + f"./test_compass_ring r=1 d={d} n={n} lazy=0 batch=0 ip={server_instance['internal_ip']}"
+    c_vanilla = "cd compass/build/ && " + f"./test_compass_ring r=2 d={d} n={n} lazy=0 batch=0 ip={server_instance['internal_ip']} f_latency={f_latency}"
+    s_cmds.append(s_vanilla)
+    c_cmds.append(c_vanilla)
+
+    # run accuracy
+    for s, c in zip(s_cmds, c_cmds):
+
+        threads = []
+
+        s_thread = threading.Thread(target=execute_commands_queit, args=(server_instance["name"], server_instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
+        c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+        
+        threads.append(s_thread)
+        threads.append(c_thread)
+        s_thread.start()
+        c_thread.start()
+
+        for thread in threads:
+            thread.join()
+
+    # fetch results
+    remote_fpath_list = ["/home/artifact/compass/build/" + f for f in latency_file_list]
+
+
+    scp_from_remote(
+        client_instance["internal_ip"],
+        USER_NAME,
+        PRIVATE_KEY_PATH,
+        remote_fpath_list, 
+        "./script/artifact/results/"
+    )
+
+    
+    return
 
 if __name__ == "__main__":
     os.chdir(os.path.expanduser('~/compass/'))
     # (s_name, s_internal_ip) = create_instance(server_config, "ae-server")
     # (c_name, c_internal_ip) = create_instance(client_config, "ae-client")
 
-    c_instance = {
-        "name": "ae_client",
-        "internal_ip": "10.128.0.28"
-    }
+    # c_instance = {
+    #     "name": "ae_client",
+    #     "internal_ip": "10.128.0.28"
+    # }
 
-    s_instance = {
-        "name": "ae_server",
-        "internal_ip": "10.128.0.27"
-    }
+    # s_instance = {
+    #     "name": "ae_server",
+    #     "internal_ip": "10.128.0.27"
+    # }
+
+    # run_ablation_accuracy(s_instance)
+    # run_ablation_latency(s_instance, c_instance)
 
     # prepare_instance(s_instance)
     # prepare_instance(c_instance)
 
-    run_compass_laetncy(s_instance, c_instance)
+    # run_compass_latency(s_instance, c_instance)
     # tc_slow(s_instance)
 
     # prepare_instance(s_instance)

@@ -10,6 +10,9 @@ def ivecs_read(fname):
 def fvecs_read(fname):
     return ivecs_read(fname).view('float32')
 
+def list_add(x, y):
+    return [a+0.6*b for a,b in zip(x, y)]
+
 # each one include
 # [fast_perceived, fast_full, slow_perceived, slow_full]
 # datasets = ["laion", "sift", "trip", "msmarco", "laion", "sift", "trip", "msmarco"]
@@ -19,8 +22,15 @@ def draw_latency_breakdown(raw_data):
     plt.rcParams.update({'font.family': "Times New Roman"})
 
     color1 = "#e6a002"
-
     color2 = "#019e73"
+
+    error_style = {
+        'elinewidth': 0.7,       # Width of error bar line
+        'ecolor': 'dimgray',       # Color of error bars
+        'capsize': 3,          # Length of the error bar caps
+        'capthick': 0.7,         # Thickness of the caps
+        'linestyle': '--'      # Style of error bar line
+    }
 
     # Data
     categories1 = ['LAION', 'SIFT1M']
@@ -100,19 +110,23 @@ def draw_latency_breakdown(raw_data):
     ax4 = axs[1][1]
 
     # First subplot
-    ax1.bar(x1 - bar_width/2, perceived_fast_sh[0:2], bar_width, yerr=perceived_err_fast_sh[0:2], color=color1, label='Perceived Latency - SH.')
-    ax1.bar(x1 - bar_width/2, evict_fast_sh[0:2], bar_width, yerr=full_err_fast_sh[0:2], bottom=perceived_fast_sh[0:2], color=color1, alpha=0.5, label='Full Latency - SH.')
+    ax1.bar(x1 - bar_width/2, perceived_fast_sh[0:2], bar_width, yerr=perceived_err_fast_sh[0:2], error_kw=error_style, color=color1, label='Perceived Latency - SH.')
+    ax1.bar(x1 - bar_width/2, evict_fast_sh[0:2], bar_width, yerr=full_err_fast_sh[0:2], error_kw=error_style, bottom=perceived_fast_sh[0:2], color=color1, alpha=0.5, label='Full Latency - SH.')
 
-    ax1.bar(x1 + bar_width/2, perceived_fast_mal[0:2], bar_width, yerr=perceived_err_fast_mal[0:2], color=color2, label='Perceived Latency - Mal.')
-    ax1.bar(x1 + bar_width/2, evict_fast_mal[0:2], bar_width, yerr=full_err_fast_mal[0:2], bottom=perceived_fast_mal[0:2], color=color2, alpha=0.5, label='Full Latency - Mal.')
+    ax1.bar(x1 + bar_width/2, perceived_fast_mal[0:2], bar_width, yerr=perceived_err_fast_mal[0:2], error_kw=error_style, color=color2, label='Perceived Latency - Mal.')
+    ax1.bar(x1 + bar_width/2, evict_fast_mal[0:2], bar_width, yerr=full_err_fast_mal[0:2], error_kw=error_style, bottom=perceived_fast_mal[0:2], color=color2, alpha=0.5, label='Full Latency - Mal.')
 
     perceived_fast = [perceived_fast_sh, perceived_fast_mal]
     evict_fast = [evict_fast_sh, evict_fast_mal]
+
+    perceived_fast_pos = [list_add(perceived_fast_sh, perceived_err_fast_sh), list_add(perceived_fast_mal, perceived_err_fast_mal)]
+    evict_fast_pos = [list_add(evict_fast_sh, full_err_fast_sh), list_add(evict_fast_mal, full_err_fast_mal)]
+
     xs = [- bar_width/2, + bar_width/2]
     for x in x1:
         for i in range(2):
-            ax1.text(x + xs[i], perceived_fast[i][x], f'{perceived_fast[i][x]:.3f}', ha='center', va='bottom', fontsize=11)
-            ax1.text(x + xs[i], perceived_fast[i][x] + evict_fast[i][x], f'{perceived_fast[i][x] + evict_fast[i][x]:.3f}', ha='center', va='bottom', fontsize=11)
+            ax1.text(x + xs[i], perceived_fast_pos[i][x], f'{perceived_fast[i][x]:.2f}', ha='center', va='bottom', fontsize=11)
+            ax1.text(x + xs[i], perceived_fast_pos[i][x] + evict_fast_pos[i][x], f'{perceived_fast[i][x] + evict_fast[i][x]:.2f}', ha='center', va='bottom', fontsize=11)
 
     ax1.set_ylabel('fast - Latency (s)')
     ax1.set_xticks(x1)
@@ -123,16 +137,16 @@ def draw_latency_breakdown(raw_data):
     # ax1.legend()
 
     # Second subplot
-    ax2.bar(x1 - bar_width/2, perceived_fast_sh[2:4], bar_width, yerr=perceived_err_fast_sh[2:4], color=color1)
-    ax2.bar(x1 - bar_width/2, evict_fast_sh[2:4], bar_width, yerr=full_err_fast_sh[2:4], bottom=perceived_fast_sh[2:4], color=color1, alpha=0.5)
+    ax2.bar(x1 - bar_width/2, perceived_fast_sh[2:4], bar_width, yerr=perceived_err_fast_sh[2:4], error_kw=error_style, color=color1)
+    ax2.bar(x1 - bar_width/2, evict_fast_sh[2:4], bar_width, yerr=full_err_fast_sh[2:4], error_kw=error_style, bottom=perceived_fast_sh[2:4], color=color1, alpha=0.5)
 
-    ax2.bar(x1 + bar_width/2, perceived_fast_mal[2:4], bar_width, yerr=perceived_err_fast_mal[2:4], color=color2)
-    ax2.bar(x1 + bar_width/2, evict_fast_mal[2:4], bar_width, yerr=full_err_fast_mal[2:4], bottom=perceived_fast_mal[2:4], color=color2, alpha=0.5)
+    ax2.bar(x1 + bar_width/2, perceived_fast_mal[2:4], bar_width, yerr=perceived_err_fast_mal[2:4], error_kw=error_style, color=color2)
+    ax2.bar(x1 + bar_width/2, evict_fast_mal[2:4], bar_width, yerr=full_err_fast_mal[2:4], error_kw=error_style, bottom=perceived_fast_mal[2:4], color=color2, alpha=0.5)
 
     for x in x1:
         for i in range(2):
-            ax2.text(x + xs[i], perceived_fast[i][x + 2], f'{perceived_fast[i][x + 2]:.3f}', ha='center', va='bottom', fontsize=11)
-            ax2.text(x + xs[i], perceived_fast[i][x + 2] + evict_fast[i][x + 2], f'{perceived_fast[i][x + 2] + evict_fast[i][x + 2]:.3f}', ha='center', va='bottom', fontsize=11)
+            ax2.text(x + xs[i], perceived_fast_pos[i][x + 2], f'{perceived_fast[i][x + 2]:.2f}', ha='center', va='bottom', fontsize=11)
+            ax2.text(x + xs[i], perceived_fast_pos[i][x + 2] + evict_fast_pos[i][x + 2], f'{perceived_fast[i][x + 2] + evict_fast[i][x + 2]:.2f}', ha='center', va='bottom', fontsize=11)
 
 
     ax2.set_xticks(x2)
@@ -142,18 +156,20 @@ def draw_latency_breakdown(raw_data):
     ax2.set_yticks([0, 0.4, 0.8, 1.2])
     # ax2.legend()
 
-    ax3.bar(x1 - bar_width/2, perceived_slow_sh[0:2], bar_width, yerr=perceived_err_slow_sh[0:2], color=color1)
-    ax3.bar(x1 - bar_width/2, evict_slow_sh[0:2], bar_width, yerr=full_err_slow_sh[0:2], bottom=perceived_slow_sh[0:2], color=color1, alpha=0.5)
+    ax3.bar(x1 - bar_width/2, perceived_slow_sh[0:2], bar_width, yerr=perceived_err_slow_sh[0:2], error_kw=error_style, color=color1)
+    ax3.bar(x1 - bar_width/2, evict_slow_sh[0:2], bar_width, yerr=full_err_slow_sh[0:2], error_kw=error_style, bottom=perceived_slow_sh[0:2], color=color1, alpha=0.5)
 
-    ax3.bar(x1 + bar_width/2, perceived_slow_mal[0:2], bar_width, yerr=perceived_err_slow_mal[0:2], color=color2)
-    ax3.bar(x1 + bar_width/2, evict_slow_mal[0:2], bar_width, yerr=full_err_slow_mal[0:2], bottom=perceived_slow_mal[0:2], color=color2, alpha=0.5)
+    ax3.bar(x1 + bar_width/2, perceived_slow_mal[0:2], bar_width, yerr=perceived_err_slow_mal[0:2], error_kw=error_style, color=color2)
+    ax3.bar(x1 + bar_width/2, evict_slow_mal[0:2], bar_width, yerr=full_err_slow_mal[0:2], error_kw=error_style, bottom=perceived_slow_mal[0:2], color=color2, alpha=0.5)
 
     perceived_slow = [perceived_slow_sh, perceived_slow_mal]
     evict_slow = [evict_slow_sh, evict_slow_mal]
+    perceived_slow_pos = [list_add(perceived_slow_sh, perceived_err_slow_sh), list_add(perceived_slow_mal, perceived_err_slow_mal)]
+    evict_slow_pos = [list_add(evict_slow_sh, full_err_slow_sh), list_add(evict_slow_mal, full_err_slow_mal)]
     for x in x1:
         for i in range(2):
-            ax3.text(x + xs[i], perceived_slow[i][x], f'{perceived_slow[i][x]:.3f}', ha='center', va='bottom', fontsize=11)
-            ax3.text(x + xs[i], perceived_slow[i][x] + evict_slow[i][x], f'{perceived_slow[i][x] + evict_slow[i][x]:.3f}', ha='center', va='bottom', fontsize=11)
+            ax3.text(x + xs[i], perceived_slow_pos[i][x], f'{perceived_slow[i][x]:.2f}', ha='center', va='bottom', fontsize=11)
+            ax3.text(x + xs[i], perceived_slow_pos[i][x] + evict_slow_pos[i][x], f'{perceived_slow[i][x] + evict_slow[i][x]:.2f}', ha='center', va='bottom', fontsize=11)
 
 
 
@@ -165,23 +181,23 @@ def draw_latency_breakdown(raw_data):
     ax3.set_yticks([0, 0.4, 0.8, 1.2])
     #
 
-    ax4.bar(x1 - bar_width/2, perceived_slow_sh[2:4], bar_width, yerr=perceived_err_slow_sh[2:4], color=color1)
-    ax4.bar(x1 - bar_width/2, evict_slow_sh[2:4], bar_width, yerr=full_err_slow_sh[2:4], bottom=perceived_slow_sh[2:4], color=color1, alpha=0.5)
+    ax4.bar(x1 - bar_width/2, perceived_slow_sh[2:4], bar_width, yerr=perceived_err_slow_sh[2:4], error_kw=error_style, color=color1)
+    ax4.bar(x1 - bar_width/2, evict_slow_sh[2:4], bar_width, yerr=full_err_slow_sh[2:4], error_kw=error_style, bottom=perceived_slow_sh[2:4], color=color1, alpha=0.5)
 
-    ax4.bar(x1 + bar_width/2, perceived_slow_mal[2:4], bar_width, yerr=perceived_err_slow_mal[2:4], color=color2)
-    ax4.bar(x1 + bar_width/2, evict_slow_mal[2:4], bar_width, yerr=full_err_slow_mal[2:4], bottom=perceived_slow_mal[2:4], color=color2, alpha=0.5)
+    ax4.bar(x1 + bar_width/2, perceived_slow_mal[2:4], bar_width, yerr=perceived_err_slow_mal[2:4], error_kw=error_style, color=color2)
+    ax4.bar(x1 + bar_width/2, evict_slow_mal[2:4], bar_width, yerr=full_err_slow_mal[2:4], error_kw=error_style, bottom=perceived_slow_mal[2:4], color=color2, alpha=0.5)
 
     for x in x1:
         for i in range(2):
-            ax4.text(x + xs[i], perceived_slow[i][x + 2], f'{perceived_slow[i][x + 2]:.3f}', ha='center', va='bottom', fontsize=11)
-            ax4.text(x + xs[i], perceived_slow[i][x + 2] + evict_slow[i][x + 2], f'{perceived_slow[i][x + 2] + evict_slow[i][x + 2]:.3f}', ha='center', va='bottom', fontsize=11)
+            ax4.text(x + xs[i], perceived_slow_pos[i][x + 2], f'{perceived_slow[i][x + 2]:.2f}', ha='center', va='bottom', fontsize=11)
+            ax4.text(x + xs[i], perceived_slow_pos[i][x + 2] + evict_slow_pos[i][x + 2], f'{perceived_slow[i][x + 2] + evict_slow[i][x + 2]:.2f}', ha='center', va='bottom', fontsize=11)
 
 
     # ax4.set_xlabel('Slow Network')
     ax4.set_xticks(x2)
     ax4.set_xticklabels(categories2)
-    ax4.set_ylim(0, 8)
-    ax4.set_yticks([0, 2, 4, 6])
+    ax4.set_ylim(0, 9)
+    ax4.set_yticks([0, 2, 4, 6, 8])
 
     left  = 0.12  # the left side of the subplots of the figure
     right = 0.99   # the right side of the subplots of the figure
@@ -209,7 +225,7 @@ if __name__ == "__main__":
     for d in datasets:
         raw_data_of_d = []
         for n in network:
-            f_name = "../../build/latency_" + n + "_" + d + ".fvecs"
+            f_name = "../results/latency_" + n + "_" + d + ".fvecs"
             l = fvecs_read(f_name)[0]
             nq = int(l.shape[0] / 2)
             per_l = l[0:nq]

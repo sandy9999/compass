@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
         FILE* f = fopen(md.graph_cache_path.c_str(), "w");
 
         for(node_id_t nid = 0; nid < index->ntotal; nid++){
-            for(int l = 1; l < index->hnsw.levels[nid]; l++){
+            for(int l = md.ef_lowest_cached_layer; l < index->hnsw.levels[nid]; l++){
 
                 OptNode on = OptNode();
                 on.set_id(nid);
