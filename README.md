@@ -95,6 +95,16 @@ tcset $device_name --delay 40ms --rate 400Mbps
 To reproduce the results in the paper, we have prepared a driver script `driver.py` and provisioned a GCP instance for our artifact evaluators. This script needs to be run within the server for launching instances for benchmarking.
 
 
+### Performance Experiments
+
+```bash
+python3 driver.py --task performance
+```
+
+### Ablation study
+
+
+
 ### Figure 6
 
 ### Figure 7

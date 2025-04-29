@@ -3,8 +3,8 @@ import threading
 import paramiko
 import subprocess
 
-from ssh_utils import *
-from gcp.gcp_utils import *
+from script.artifact.ssh_utils import *
+from script.artifact.gcp.gcp_utils import *
 
 ZONE = "us-central1-c"
 VPC_NAME = "skypilot-vpc"
@@ -43,7 +43,7 @@ compass_datasets = ["laion", "laion_mal", "sift", "sift_mal", "trip", "trip_mal"
 # compass_datasets = ["laion"]
 
 def prepare_instance(instance):
-    print("Prepare instance: ", instance["name"])
+    print("-> Prepare instance:", instance["name"])
     cmds = [
     "ps aux | grep compass | grep -v grep | awk '{print $2}' | xargs kill",
     "cd /home/artifact/compass/ && git pull",
@@ -56,7 +56,7 @@ def prepare_instance(instance):
         cmds,
         PRIVATE_KEY_PATH,
         USER_NAME,
-        False
+        True
     )
 
 def tc_reset(instance):
@@ -119,13 +119,15 @@ def tc_show(instance):
     )
 
 # accuracy only requires one instance
-def run_compass_accuracy(instance):
+def run_compass_accuracy(instance, verbose):
+
+    print("Exp: compass accuracy ")
 
     # prepare instance
-    print("Preparing instance...")
+    # print("Preparing instance...")
     prepare_instance(instance)
 
-    print("Run exp...")
+    print("-> Run exp...")
     # run accuracy exp 
     # client_cmds = []
     # server_cmds = []
@@ -133,7 +135,7 @@ def run_compass_accuracy(instance):
     accuracy_file_list = []
 
     for d in compass_datasets_sh:
-        print("-> dataset: ", d)
+        print("-> dataset:", d)
         f_accuracy = "accuracy_" + d + ".ivecs"
         accuracy_file_list.append(f_accuracy)
 
@@ -146,7 +148,7 @@ def run_compass_accuracy(instance):
         threads = []
 
         s_thread = threading.Thread(target=execute_commands_queit, args=(instance["name"], instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
-        c_thread = threading.Thread(target=execute_commands_queit, args=(instance["name"], instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+        c_thread = threading.Thread(target=execute_commands_queit, args=(instance["name"], instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, verbose))
         
         threads.append(s_thread)
         threads.append(c_thread)
@@ -159,7 +161,7 @@ def run_compass_accuracy(instance):
     # retrieve result
     remote_fpath_list = ["/home/artifact/compass/build/" + f for f in accuracy_file_list]
 
-
+    print("-> Fetch results...")
     scp_from_remote(
         instance["internal_ip"],
         USER_NAME,
@@ -168,28 +170,32 @@ def run_compass_accuracy(instance):
         "./script/artifact/results/"
     )
 
+    print("-> Done.")
+
     return 
 
-def run_compass_latency(server_instance, client_instance):
+def run_compass_latency(server_instance, client_instance, verbose):
+
+    print("Exp: compass latency ")
 
     n = 100
-
     # prepare instance
-    print("Preparing instance...")
+    # print("Preparing instance...")
     prepare_instance(server_instance)
     prepare_instance(client_instance)
 
     remote_fpath_list = []
 
-    print("Run exp...")
+    print("-> Run exp...")
     # fast network
     tc_reset(server_instance)
     tc_reset(client_instance)
     tc_fast(server_instance)
     tc_fast(client_instance)
+    print("-> Fast network...")
 
     for d in compass_datasets:
-        print("-> dataset: ", d)
+        print("-> dataset:", d)
         f_latency = "latency_fast_" + d + ".fvecs"
         f_comm = "comm_" + d + ".txt"
         remote_fpath_list.append(f_latency)
@@ -204,7 +210,7 @@ def run_compass_latency(server_instance, client_instance):
         threads = []
 
         s_thread = threading.Thread(target=execute_commands_queit, args=(server_instance["name"], server_instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
-        c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+        c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, verbose))
         
         threads.append(s_thread)
         threads.append(c_thread)
@@ -220,9 +226,10 @@ def run_compass_latency(server_instance, client_instance):
     tc_reset(client_instance)
     tc_slow(server_instance)
     tc_slow(client_instance)
+    print("-> Slow network...")
 
     for d in compass_datasets:
-        print("-> dataset: ", d)
+        print("-> dataset:", d)
         f_latency = "latency_slow_" + d + ".fvecs"
         remote_fpath_list.append(f_latency)
 
@@ -246,7 +253,7 @@ def run_compass_latency(server_instance, client_instance):
             thread.join()
     
 
-    print("Fetch results...")
+    print("-> Fetch results...")
 
     remote_fpath_list = ["/home/artifact/compass/build/" + f for f in remote_fpath_list]
 
@@ -258,28 +265,36 @@ def run_compass_latency(server_instance, client_instance):
         "./script/artifact/results/"
     )
 
+    print("-> Done.")
+
+    return
 
 
-def run_baseline_latency(server_instance, client_instance):
+
+def run_baseline_latency(server_instance, client_instance, verbose):
+
+    print("Exp: baseline latency ")
+
     # prepare instance
-    print("Preparing instance...")
+    # print("Preparing instance...")
     prepare_instance(server_instance)
     prepare_instance(client_instance)
 
     remote_fpath_list = []
 
-    print("Run exp...")
+    print("-> Run exp...")
     # fast network
     tc_reset(server_instance)
     tc_reset(client_instance)
     tc_fast(server_instance)
     tc_fast(client_instance)
+    print("-> Fast network")
 
     # obi
     n = 10
     for d in ["trip", "msmarco"]:
         for trunc in [10, 100, 1000, 10000]:
-            # print("-> obi: ", d)
+            print(f"-> Inv-ORAM: {d} truncation {trunc}")
             f_latency = f"latency_obi_fast_{d}_{trunc}.fvecs"
             f_comm = f"comm_obi_{d}_{trunc}.fvecs"
 
@@ -292,7 +307,7 @@ def run_baseline_latency(server_instance, client_instance):
             threads = []
 
             s_thread = threading.Thread(target=execute_commands_queit, args=(server_instance["name"], server_instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
-            c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+            c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, verbose))
             
             threads.append(s_thread)
             threads.append(c_thread)
@@ -305,6 +320,7 @@ def run_baseline_latency(server_instance, client_instance):
     
     # cluster search
     for d in ["laion", "sift", "trip"]:
+        print("-> HE-Cluster:", d)
         f_latency = f"latency_cluster_fast_{d}.fvecs"
         f_comm = f"comm_cluster_{d}.fvecs"
 
@@ -317,7 +333,7 @@ def run_baseline_latency(server_instance, client_instance):
         threads = []
 
         s_thread = threading.Thread(target=execute_commands_queit, args=(server_instance["name"], server_instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
-        c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+        c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, verbose))
         
         threads.append(s_thread)
         threads.append(c_thread)
@@ -332,12 +348,12 @@ def run_baseline_latency(server_instance, client_instance):
     tc_reset(client_instance)
     tc_slow(server_instance)
     tc_slow(client_instance)
-
+    print("-> Slow network")
 
     n = 10
     for d in ["trip", "msmarco"]:
         for trunc in [10, 100, 1000, 10000]:
-            # print("-> obi: ", d)
+            print(f"-> Inv-ORAM: {d} truncation {trunc}")
             f_latency = f"latency_obi_slow_{d}_{trunc}.fvecs"
 
             remote_fpath_list.append(f_latency)
@@ -349,7 +365,7 @@ def run_baseline_latency(server_instance, client_instance):
             threads = []
 
             s_thread = threading.Thread(target=execute_commands_queit, args=(server_instance["name"], server_instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
-            c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+            c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, verbose))
             
             threads.append(s_thread)
             threads.append(c_thread)
@@ -362,6 +378,7 @@ def run_baseline_latency(server_instance, client_instance):
     
     # cluster search
     for d in ["laion", "sift", "trip"]:
+        print("-> HE-Cluster:", d)
         f_latency = f"latency_cluster_slow_{d}.fvecs"
         f_comm = f"comm_cluster_{d}.fvecs"
 
@@ -384,7 +401,7 @@ def run_baseline_latency(server_instance, client_instance):
         for thread in threads:
             thread.join()
 
-    print("Fetch results...")
+    print("-> Fetch results...")
 
     remote_fpath_list = ["/home/artifact/compass/build/" + f for f in remote_fpath_list]
 
@@ -395,6 +412,8 @@ def run_baseline_latency(server_instance, client_instance):
         remote_fpath_list, 
         "./script/artifact/results/"
     )
+
+    print("-> Done.")
 
     return
 
@@ -578,7 +597,7 @@ def execute_commands_reduce(instance_name, ip, cmds, private_key_path, user_name
         for cmd in cmds:
 
             if verbose:
-                print("exec_command: ", cmd)
+                print("exec_command:", cmd)
 
             transport = ssh_client.get_transport()
             channel = transport.open_session()
@@ -590,12 +609,12 @@ def execute_commands_reduce(instance_name, ip, cmds, private_key_path, user_name
                     # Check if data is ready to be read
                     if channel.recv_ready():
                         output = channel.recv(1024).decode('utf-8')  # Adjust buffer size if necessary
-                        print(f"[{instance_name}]: ", output, end="")  # Print the output without adding extra newlines
+                        print(f"[{instance_name}]:", output, end="")  # Print the output without adding extra newlines
                     
                     # Check if the command is finished
                     if channel.exit_status_ready():
                         output = channel.recv(1024).decode('utf-8')  # Adjust buffer size if necessary
-                        print(f"[{instance_name}]: ",output, end="")  # Print the output without adding extra newlines
+                        print(f"[{instance_name}]:",output, end="")  # Print the output without adding extra newlines
                         break
 
                     # Prevent high CPU usage in the loop
@@ -609,14 +628,14 @@ def execute_commands_reduce(instance_name, ip, cmds, private_key_path, user_name
                             output = channel.recv(1024).decode('utf-8')  # Adjust buffer size if necessary
                             if output.split(" ")[0] == "Throughput:":
                                 tp = float(output.split(" ")[1])
-                                # print("assign to id: ", id, " length of trhouput: ", len(throuput))
+                                # print("assign to id:", id, " length of trhouput:", len(throuput))
                                 # print(throuput)
                                 throuput[id] = tp
                     
                     # Check if the command is finished
                     if channel.exit_status_ready():
                         # output = channel.recv(1024).decode('utf-8')  # Adjust buffer size if necessary
-                        # print(f"[{instance_name}]: ",output, end="")  # Print the output without adding extra newlines
+                        # print(f"[{instance_name}]:",output, end="")  # Print the output without adding extra newlines
                         break
 
                     # Prevent high CPU usage in the loop
@@ -637,7 +656,7 @@ def tp_monitor():
         total_tp = 0
         for tp in throuput:
             total_tp += tp
-        print("Total throughput: ", total_tp)
+        print("Total throughput:", total_tp)
         time.sleep(1)
 
 def run_throuput(server_instance, client_instances):

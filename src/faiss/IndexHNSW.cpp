@@ -264,9 +264,9 @@ SearchStats IndexHNSW::oblivious_search(
         t_search += search;
         t_fetch += stats.oram_fetch;
 
-        // if(i % 100 == 0){
-        //     std::cout << "-> done: " <<  i << std::endl;
-        // }
+        if((i+1) % 100 == 0){
+            std::cout << "-> done: " <<  (i+1) << std::endl;
+        }
     }
 
 
