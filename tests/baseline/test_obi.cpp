@@ -48,14 +48,20 @@ int port = 8000;
 string address = "127.0.0.1";
 int truncate_size = 10000;
 string dataset = "";
+string f_latency = "";
+string f_comm = "";
+int n = 1;
 
 int main(int argc, char **argv) {
     ArgMapping amap;
     amap.arg("r", party, "Role of party: Server = 1; Client = 2");
     amap.arg("p", port, "Port Number");
     amap.arg("d", dataset, "Dataset: [trip, msmarco]");
+    amap.arg("n", n, "# queries");
     amap.arg("ip", address, "IP Address of server");
     amap.arg("trunc", truncate_size, "truncation of docs");
+    amap.arg("f_latency", f_latency, "Save latency");
+    amap.arg("f_comm", f_comm, "Save communication");
     amap.parse(argc, argv);
 
     cout << ">>> Setting up..." << endl;
@@ -131,6 +137,11 @@ int main(int argc, char **argv) {
         round = io->num_rounds;
         
 		remote_storage->run_server();
+
+        if(f_comm != ""){
+            long final_comm = io->counter - comm;
+            io->send_data(&final_comm, sizeof(long));
+        }
     } else{
         // Client
         tprint("Initializing ORAM... \n", t0);
@@ -174,11 +185,13 @@ int main(int argc, char **argv) {
         comm = io->counter;
         round = io->num_rounds;
 
+        vector<float> latency;
+
         // Search
         {
             cout << "Searching " << endl;
-            double t1 = elapsed();
-            for(int i = 0; i < 1; i++){
+            for(int i = 0; i < n; i++){
+                double t1 = elapsed();
                 // The ith query
                 int* q = xq + i * dq;
 
@@ -205,13 +218,13 @@ int main(int argc, char **argv) {
                     }
                 }
 
-                cout << "Sending bacth oram request " << endl;
+                // cout << "Sending bacth oram request " << endl;
                 vector<int> indices_list(indices_set.begin(), indices_set.end());
                 int useful_length = indices_list.size();
                 int request_length = truncate_size * dq;
-                cout << "max_docs " << max_docs << endl;
-                cout << "dq " << dq << endl;
-                cout << "request_length "  << request_length << endl;
+                // cout << "max_docs " << max_docs << endl;
+                // cout << "dq " << dq << endl;
+                // cout << "request_length "  << request_length << endl;
                 // Pad to the same query
                 for(int i = indices_list.size(); i < request_length; i++){
                     indices_list.push_back(0);
@@ -301,12 +314,38 @@ int main(int argc, char **argv) {
                 }
 
                 ((OramReadPathEviction*)oram)->evict_and_write_back();
+                latency.push_back(elapsed() - t1);
+                // printf("[%.3f s] Search time: %.3f s\n", elapsed() - t0, elapsed() - t1);
+                cout << "-> " << i << endl;
             }
 
-            printf("[%.3f s] Search time: %.3f s\n", elapsed() - t0, elapsed() - t1);
         }        
 
+        if(f_latency != ""){
+            fvecs_write(
+                f_latency.c_str(),
+                latency.data(),
+                latency.size(),
+                1
+            );
+        }
+
         remote_storage->close_server();
+
+        if(f_comm != ""){
+            long final_comm = io->counter - comm;
+            long final_rnd = io->num_rounds - round;
+            long server_comm;
+            io->recv_data(&server_comm, sizeof(long));
+
+            FILE* file = fopen(f_comm.c_str(), "w");
+            if (file != nullptr) {
+                fprintf(file, "%ld %ld\n", final_comm+server_comm, final_rnd);
+                fclose(file);
+            } else {
+                perror("Error opening file");
+            }
+        }
 
     }
 

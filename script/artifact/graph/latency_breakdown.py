@@ -214,6 +214,27 @@ def draw_latency_breakdown(raw_data):
     # plt.tight_layout()
     # plt.show()
 
+def render_latency_breakdown():
+    datasets = ["laion", "sift", "trip", "msmarco", "laion_mal", "sift_mal", "trip_mal", "msmarco_mal"]
+    network = ["fast", "slow"]
+
+    raw_data = []
+    # laion
+    for d in datasets:
+        raw_data_of_d = []
+        for n in network:
+            f_name = "./script/artifact/results/latency_" + n + "_" + d + ".fvecs"
+            l = fvecs_read(f_name)[0]
+            nq = int(l.shape[0] / 2)
+            per_l = l[0:nq]
+            full_l = l[nq:]
+            raw_data_of_d.append(per_l)
+            raw_data_of_d.append(full_l)
+            # exit()
+        raw_data.append(raw_data_of_d)
+
+    draw_latency_breakdown(raw_data)
+
 
 if __name__ == "__main__":
     

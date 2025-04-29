@@ -11,39 +11,23 @@ using namespace seal;
 int party = 0;
 int port = 8000;
 string address = "127.0.0.1";
+string dataset = "";
+string f_latency = "";
+string f_comm = "";
 
-// LAION
-int nc = 407;
-size_t slot_count = 8192;
-int dim = 512;
-int node_per_cluster = 703;
-int num_queries = 1;
-int k = 10;
-
-// sift
-// int nc = 1452;
-// size_t slot_count = 8192;
-// int dim = 128;
-// int node_per_cluster = 1361;
-// int num_queries = 1;
-// int k = 10;
-
-// trip
-// int nc = 1530;
-// size_t slot_count = 8192;
-// int dim = 768;
-// int node_per_cluster = 3272;
-// int num_queries = 1;
-// int k = 10;
-
-// msmarco
-// int nc = 3801;
-// size_t slot_count = 8192;
-// int dim = 768;
-// int node_per_cluster = 7224;
-// int num_queries = 1;
-// int k = 10;
-
+void fvecs_write(const char* fname, float* data, size_t d, size_t n) {
+    FILE* f = fopen(fname, "w");
+    if (!f) {
+        fprintf(stderr, "could not open %s\n", fname);
+        perror("");
+        abort();
+    }
+    for (size_t i = 0; i < n; i++){
+        fwrite(&d, 1, sizeof(int), f);
+        fwrite(data + i*d, d, sizeof(float), f);
+    }
+    fclose(f);
+}
 
 void send_ciphertext(NetIO *io, Ciphertext &ct) {
   stringstream os;
@@ -114,7 +98,43 @@ int main(int argc, char **argv){
     amap.arg("r", party, "Role of party: Server = 1; Client = 2");
     amap.arg("p", port, "Port Number");
     amap.arg("ip", address, "IP Address of server");
+    amap.arg("d", dataset, "Dataset: [sift, trip, msmarco, laion]");
+    amap.arg("f_latency", f_latency, "Save latency");
+    amap.arg("f_comm", f_comm, "Save communication");
+
     amap.parse(argc, argv);
+    
+    int num_queries = 1;
+    size_t slot_count = 8192;
+    int k = 10;
+    int nc, dim, node_per_cluster;
+
+    if(dataset == "laion"){
+        // LAION
+        nc = 407;
+        dim = 512;
+        node_per_cluster = 703;
+        
+    } else if (dataset =="sift"){
+        // sift
+        nc = 1452;
+        dim = 128;
+        node_per_cluster = 1361;
+    } else if (dataset == "trip"){
+        // sift
+        nc = 1530;
+        dim = 768;
+        node_per_cluster = 3272;
+    } else {
+        // msmarco
+        // int nc = 3801;
+        // size_t slot_count = 8192;
+        // int dim = 768;
+        // int node_per_cluster = 7224;
+        // int num_queries = 1;
+        // int k = 10;
+        assert(0);
+    }
 
     cout << ">>> Setting up..." << endl;
     cout << "-> Role: " << party << endl;
@@ -272,6 +292,11 @@ int main(int argc, char **argv){
 
             cout << "Sending query result back to client..." << endl;
             send_encrypted_vector(io, results_ctxs);
+        }
+
+        if(f_comm != ""){
+            long final_comm = io->counter - comm;
+            io->send_data(&final_comm, sizeof(long));
         }
 
     } else{
@@ -434,7 +459,39 @@ int main(int argc, char **argv){
             search_results.push_back(vector<int>(arg.begin(), arg.begin() + k));
         }
 
+        if(f_latency != ""){
+            // string perceived_latency_path = "perceived_latency_" + dataset + ".bin";
+            // string full_latency_path = "full_latency_" + dataset + ".bin";
+
+            float lat = interval(t_start);
+
+            vector<float> latency = {lat};
+
+            fvecs_write(
+                f_latency.c_str(),
+                latency.data(),
+                latency.size(),
+                1
+            );
+
+        }
+
         cout << "> [TIMING]: server computation: " << interval(t_start) << "sec" << endl;
+
+        if(f_comm != ""){
+            long final_comm = io->counter - comm;
+            long final_rnd = io->num_rounds - round;
+            long server_comm;
+            io->recv_data(&server_comm, sizeof(long));
+
+            FILE* file = fopen(f_comm.c_str(), "w");
+            if (file != nullptr) {
+                fprintf(file, "%ld %ld\n", final_comm+server_comm, final_rnd);
+                fclose(file);
+            } else {
+                perror("Error opening file");
+            }
+        }
     }
 
    

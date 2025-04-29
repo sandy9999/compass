@@ -2,56 +2,44 @@ import argparse
 import subprocess
 import sys
 
-datasets = ["laion", "laion_mal", "sift", "sift_mal", "trip", "trip_mal", "msmarco", "msmarco_mal"]
+from script.artifact.task import *
+from script.artifact.graph.ablation_study import render_msmarco_ablation
+from script.artifact.graph.latency_breakdown import render_latency_breakdown
 
-server_ip = "10.128.0.11"
+def run_performance():
+    s_instance = create_instance(server_config, "ae-perf-server")
+    c_instance = create_instance(client_config, "ae-perf-client")
 
-def tc_reset(verbose):
-    cmd = ["tcdel", "ens4", "--all"]
-    subprocess.run(cmd, capture_output=not verbose, check=True)
+    # accuracy
+    run_compass_accuracy(s_instance)
 
-def tc_set_slow(verbose):
-    cmd = ["tcset", "ens4", "--delay", "40ms", "--rate", "400Mbps"]
-    subprocess.run(cmd, capture_output=not verbose, check=True)
+    # latency
+    run_compass_latency(s_instance, c_instance)
 
-def tc_set_fast(verbose):
-    cmd = ["tcset", "ens4", "--delay", "0.5ms", "--rate", "3Gbps"]
-    subprocess.run(cmd, capture_output=not verbose, check=True)
+    # latency breakdown
+    render_latency_breakdown()
 
-def run_latency(role, verbose):
 
-    # role
-    r = 1 if role == "server" else 2
+    delete_instance(PROJECT_ID, ZONE, s_instance["name"])
+    delete_instance(PROJECT_ID, ZONE, c_instance["name"])
+    return 
 
-    # number of queries
-    n =100
-
-    tc_reset(verbose)
-    print("> Simulate fast network")
-    tc_set_fast(verbose)
-    for d in datasets:
-        f_latency = "latency_fast_" + d + ".fvecs"
-        cmd = ["./test_compass_ring", "r=" + str(r), "d=" + d, "ip="+server_ip, "n="+str(n), "f_latency="+f_latency]
-        print("Executing: ", cmd)
-        subprocess.run(cmd, cwd="./build/", capture_output=not verbose, check=True)
-
-    print("> Simulate slow network")
-    tc_reset(verbose)
-    tc_set_slow(verbose)
-    for d in datasets:
-        f_latency = "latency_slow_" + d + ".fvecs"
-        cmd = ["./test_compass_ring", "r=" + str(r), "d=" + d, "ip="+server_ip, "n="+str(n), "f_latency="+f_latency]
-        print("Executing: ", cmd)
-        subprocess.run(cmd, cwd="./build/", capture_output=not verbose, check=True)
-    
-    tc_reset(verbose)
-    return
-
-def run_accuracy():
-    return
 
 def run_ablation():
-    return
+    s_instance = create_instance(server_config, "ae-ablation-server")
+    c_instance = create_instance(client_config, "ae-ablation-client")
+
+    # accuracy 
+    run_ablation_accuracy(s_instance)
+
+    # latency
+    run_ablation_latency(s_instance, c_instance)
+
+    # render
+    render_msmarco_ablation()
+
+    delete_instance(PROJECT_ID, ZONE, s_instance["name"])
+    delete_instance(PROJECT_ID, ZONE, c_instance["name"])
 
 if __name__ == "__main__":
     try:
@@ -65,27 +53,13 @@ if __name__ == "__main__":
         )
 
         parser.add_argument(
-            "--role",
-            choices=["server", "client"],
-            help="role for latency task: server or client"
-        )
-
-        parser.add_argument(
             "--verbose", 
             action="store_true",
             help="enable verbose output")
 
         args = parser.parse_args()
 
-        if args.task == "latency":
-            if not args.role:
-                print("Error: --role is required when task is 'latency'")
-                sys.exit(1)
-            run_latency(args.role, args.verbose)
-        elif args.task == "accuracy":
-            run_accuracy()
-        elif args.task == "ablation":
-            run_ablation()
+
         
     except subprocess.CalledProcessError as e:
         print("The command")

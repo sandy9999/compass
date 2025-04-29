@@ -56,7 +56,12 @@ def create_instance(config, instance_name):
 
     print(f"Instance {instance_name} created successfully with internal IP: {internal_ip}")
 
-    return (instance, internal_ip)
+    instance = {
+        "name": instance_name,
+        "internal_ip": internal_ip
+    }
+
+    return instance
 
 def delete_instance(project_id, zone, instance_name):
     """Deletes a GCP instance."""

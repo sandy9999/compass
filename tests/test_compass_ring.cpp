@@ -103,6 +103,7 @@ bool batching = true;
 bool lazy_evict = true;
 string f_latency = "";
 string f_accuracy = "";
+string f_comm = "";
 
 int main(int argc, char **argv) {
     ArgMapping amap;
@@ -117,6 +118,7 @@ int main(int argc, char **argv) {
     amap.arg("lazy", lazy_evict, "Disable lazy eviction");
     amap.arg("f_latency", f_latency, "Save latency");
     amap.arg("f_accuracy", f_accuracy, "Save accuracy");
+    amap.arg("f_comm", f_comm, "Save communication");
     amap.parse(argc, argv);
 
     cout << ">>> Setting up..." << endl;
@@ -194,6 +196,12 @@ int main(int argc, char **argv) {
         round = io->num_rounds;
         
 		remote_storage->run_server();
+
+        if(f_comm != ""){
+            long final_comm = io->counter - comm;
+            io->send_data(&final_comm, sizeof(long));
+        }
+        
     } else{
         // Client
         tprint("Initializing ORAM... \n", t0);
@@ -392,6 +400,21 @@ int main(int argc, char **argv) {
         
 
         remote_storage->close_server();
+
+        if(f_comm != ""){
+            long final_comm = io->counter - comm;
+            long final_rnd = io->num_rounds - round;
+            long server_comm;
+            io->recv_data(&server_comm, sizeof(long));
+
+            FILE* file = fopen(f_comm.c_str(), "w");
+            if (file != nullptr) {
+                fprintf(file, "%ld %ld\n", final_comm+server_comm, final_rnd);
+                fclose(file);
+            } else {
+                perror("Error opening file");
+            }
+        }
     }
 
     // delete io;

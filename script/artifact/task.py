@@ -188,10 +188,12 @@ def run_compass_latency(server_instance, client_instance):
     for d in compass_datasets:
         print("-> dataset: ", d)
         f_latency = "latency_fast_" + d + ".fvecs"
+        f_comm = "comm_" + d + ".txt"
         remote_fpath_list.append(f_latency)
+        remote_fpath_list.append(f_comm)
 
-        s = "cd compass/build/ && " + f"./test_compass_ring r=1 d={d} n={n} ip={server_instance['internal_ip']}"
-        c = "cd compass/build/ && " + f"./test_compass_ring r=2 d={d} n={n} ip={server_instance['internal_ip']} f_latency={f_latency}"
+        s = "cd compass/build/ && " + f"./test_compass_ring r=1 d={d} n={n} ip={server_instance['internal_ip']} f_comm={f_comm}"
+        c = "cd compass/build/ && " + f"./test_compass_ring r=2 d={d} n={n} ip={server_instance['internal_ip']} f_comm={f_comm} f_latency={f_latency}"
         
         # client_cmds.append(s)
         # server_cmds.append(c)
@@ -246,7 +248,7 @@ def run_compass_latency(server_instance, client_instance):
     remote_fpath_list = ["/home/artifact/compass/build/" + f for f in remote_fpath_list]
 
     scp_from_remote(
-        c_instance["internal_ip"],
+        client_instance["internal_ip"],
         USER_NAME,
         PRIVATE_KEY_PATH,
         remote_fpath_list, 
@@ -255,7 +257,142 @@ def run_compass_latency(server_instance, client_instance):
 
 
 
-def run_baseline_accuracy():
+def run_baseline_latency(server_instance, client_instance):
+    # prepare instance
+    print("Preparing instance...")
+    prepare_instance(server_instance)
+    prepare_instance(client_instance)
+
+    remote_fpath_list = []
+
+    print("Run exp...")
+    # fast network
+    tc_reset(server_instance)
+    tc_reset(client_instance)
+    tc_fast(server_instance)
+    tc_fast(client_instance)
+
+    # obi
+    n = 10
+    for d in ["trip", "msmarco"]:
+        for trunc in [10, 100, 1000, 10000]:
+            print("-> obi: " d):
+            f_latency = f"latency_obi_fast_{d}_{trunc}.fvecs"
+            f_comm = f"comm_obi_{d}_{trunc}.fvecs"
+
+            remote_fpath_list.append(f_latency)
+            remote_fpath_list.append(f_comm)
+
+            s = "cd compass/build/ && " + f"./test_obi r=1 d={d} n={n} trunc={trunc} ip={server_instance['internal_ip']} f_comm={f_comm}"
+            c = "cd compass/build/ && " + f"./test_obi r=2 d={d} n={n} trunc={trunc} ip={server_instance['internal_ip']} f_comm={f_comm} f_latency={f_latency}"
+
+            threads = []
+
+            s_thread = threading.Thread(target=execute_commands_queit, args=(server_instance["name"], server_instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
+            c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+            
+            threads.append(s_thread)
+            threads.append(c_thread)
+            s_thread.start()
+            c_thread.start()
+
+            for thread in threads:
+                thread.join()
+
+    
+    # cluster search
+    for d in ["laion", "sift", "trip"]:
+        f_latency = f"latency_cluster_fast_{d}.fvecs"
+        f_comm = f"comm_cluster_{d}.fvecs"
+
+        remote_fpath_list.append(f_latency)
+        remote_fpath_list.append(f_comm)
+
+        s = "cd compass/build/ && " + f"./test_cluster_search r=1 d={d} ip={server_instance['internal_ip']} f_comm={f_comm}"
+            c = "cd compass/build/ && " + f"./test_cluster_search r=2 d={d} ip={server_instance['internal_ip']} f_comm={f_comm} f_latency={f_latency}"
+
+        threads = []
+
+        s_thread = threading.Thread(target=execute_commands_queit, args=(server_instance["name"], server_instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
+        c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+        
+        threads.append(s_thread)
+        threads.append(c_thread)
+        s_thread.start()
+        c_thread.start()
+
+        for thread in threads:
+            thread.join()
+
+    # fast network
+    tc_reset(server_instance)
+    tc_reset(client_instance)
+    tc_slow(server_instance)
+    tc_slow(client_instance)
+
+
+    n = 10
+    for d in ["trip", "msmarco"]:
+        for trunc in [10, 100, 1000, 10000]:
+            print("-> obi: " d):
+            f_latency = f"latency_obi_slow_{d}_{trunc}.fvecs"
+
+            remote_fpath_list.append(f_latency)
+            remote_fpath_list.append(f_comm)
+
+            s = "cd compass/build/ && " + f"./test_obi r=1 d={d} n={n} trunc={trunc} ip={server_instance['internal_ip']}"
+            c = "cd compass/build/ && " + f"./test_obi r=2 d={d} n={n} trunc={trunc} ip={server_instance['internal_ip']} f_latency={f_latency}"
+
+            threads = []
+
+            s_thread = threading.Thread(target=execute_commands_queit, args=(server_instance["name"], server_instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
+            c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+            
+            threads.append(s_thread)
+            threads.append(c_thread)
+            s_thread.start()
+            c_thread.start()
+
+            for thread in threads:
+                thread.join()
+
+    
+    # cluster search
+    for d in ["laion", "sift", "trip"]:
+        f_latency = f"latency_cluster_fast_{d}.fvecs"
+        f_comm = f"comm_cluster_{d}.fvecs"
+
+        remote_fpath_list.append(f_latency)
+        remote_fpath_list.append(f_comm)
+
+        s = "cd compass/build/ && " + f"./test_cluster_search r=1 d={d} ip={server_instance['internal_ip']} f_comm={f_comm}"
+            c = "cd compass/build/ && " + f"./test_cluster_search r=2 d={d} ip={server_instance['internal_ip']} f_comm={f_comm} f_latency={f_latency}"
+
+        threads = []
+
+        s_thread = threading.Thread(target=execute_commands_queit, args=(server_instance["name"], server_instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
+        c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+        
+        threads.append(s_thread)
+        threads.append(c_thread)
+        s_thread.start()
+        c_thread.start()
+
+        for thread in threads:
+            thread.join()
+
+    print("Fetch results...")
+
+    remote_fpath_list = ["/home/artifact/compass/build/" + f for f in remote_fpath_list]
+
+    scp_from_remote(
+        client_instance["internal_ip"],
+        USER_NAME,
+        PRIVATE_KEY_PATH,
+        remote_fpath_list, 
+        "./script/artifact/results/"
+    )
+
     return
 
 def run_ablation_accuracy(instance):
@@ -363,7 +500,7 @@ def run_ablation_latency(server_instance, client_instance):
     efspec = 8
     efn = 1
     while efn <= 256:
-        f_latency  = f"ablation_latency_{d}_{efspec}_{efn}.ivecs"
+        f_latency  = f"ablation_latency_{d}_{efspec}_{efn}.fvecs"
         latency_file_list.append(f_latency)
         s = "cd compass/build/ && " + f"./test_compass_ring r=1 d={d} n={n} efn={efn} efspec={efspec} ip={server_instance['internal_ip']}"
         c = "cd compass/build/ && " + f"./test_compass_ring r=2 d={d} n={n} efn={efn} efspec={efspec} ip={server_instance['internal_ip']} f_latency={f_latency}"
@@ -372,7 +509,7 @@ def run_ablation_latency(server_instance, client_instance):
         efn = efn*2
     
     # disable lazy_eviction
-    f_latency  = f"ablation_accuracy_{d}_lazy.ivecs"
+    f_latency  = f"ablation_latency_{d}_lazy.fvecs"
     latency_file_list.append(f_latency)
     s_lazy = "cd compass/build/ && " + f"./test_compass_ring r=1 d={d} n={n} lazy=0 ip={server_instance['internal_ip']}"
     c_lazy = "cd compass/build/ && " + f"./test_compass_ring r=2 d={d} n={n} lazy=0 ip={server_instance['internal_ip']} f_latency={f_latency}"
@@ -380,7 +517,7 @@ def run_ablation_latency(server_instance, client_instance):
     c_cmds.append(c_lazy)
 
     # vanilla ring oram
-    f_latency  = f"ablation_accuracy_{d}_vanilla.ivecs"
+    f_latency  = f"ablation_latency_{d}_vanilla.fvecs"
     latency_file_list.append(f_latency)
     s_vanilla = "cd compass/build/ && " + f"./test_compass_ring r=1 d={d} n={n} lazy=0 batch=0 ip={server_instance['internal_ip']}"
     c_vanilla = "cd compass/build/ && " + f"./test_compass_ring r=2 d={d} n={n} lazy=0 batch=0 ip={server_instance['internal_ip']} f_latency={f_latency}"
@@ -420,8 +557,8 @@ def run_ablation_latency(server_instance, client_instance):
 
 if __name__ == "__main__":
     os.chdir(os.path.expanduser('~/compass/'))
-    # (s_name, s_internal_ip) = create_instance(server_config, "ae-server")
-    # (c_name, c_internal_ip) = create_instance(client_config, "ae-client")
+    (s_name, s_internal_ip) = create_instance(server_config, "ae-server")
+    (c_name, c_internal_ip) = create_instance(client_config, "ae-client")
 
     # c_instance = {
     #     "name": "ae_client",
