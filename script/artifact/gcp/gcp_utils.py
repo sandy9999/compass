@@ -2,6 +2,7 @@ import time
 import threading
 import paramiko
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 from google.cloud import compute_v1
 
@@ -82,3 +83,30 @@ def delete_instance(project_id, zone, instance_name):
         print(f"Instance {instance_name} deleted successfully.")
     except Exception as e:
         print(f"Failed to delete instance {instance_name}: {e}")
+
+
+def create_tracers(config, num_instances):
+
+    tracers = [f"ae-throughput-tracer-{i}" for i in range(num_instances)]
+
+    results = []
+    with ThreadPoolExecutor(max_workers=num_instances) as executor:
+        futures = [executor.submit(create_instance, config, tracer_name) for tracer_name in tracers]
+
+        for future in futures:
+            results.append(future.result())  # this collects return values from create_instance
+
+    return results
+
+def delete_tracers(project_id, zone, tracer_names):
+
+    threads = []
+
+    for name in tracer_names:
+        thread = threading.Thread(target=delete_instance, args=(project_id, zone, name))
+        threads.append(thread)
+        thread.start()
+
+    # Wait for all threads to finish
+    for thread in threads:
+        thread.join()

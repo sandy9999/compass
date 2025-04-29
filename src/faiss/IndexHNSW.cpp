@@ -264,15 +264,13 @@ SearchStats IndexHNSW::oblivious_search(
         t_search += search;
         t_fetch += stats.oram_fetch;
 
-        if(i % 100 == 0){
-            std::cout << "-> done: " <<  i << std::endl;
-        }
+        // if(i % 100 == 0){
+        //     std::cout << "-> done: " <<  i << std::endl;
+        // }
     }
 
 
     // std::cout << "Avg. fetch latency: " <<  t_fetch / n << std::endl;
-    std::cout << "Avg. response latency: " << t_response / n << std::endl;
-    std::cout << "Avg. search latency: " <<  t_search / n << std::endl;
 
     return s_stats;
 }

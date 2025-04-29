@@ -227,6 +227,10 @@ def get_mean_full_lat(latency_result):
     full_l = l[nq:]
     return full_l.mean()
 
+def get_mean_tfidf_lat(latency_result):
+    l = fvecs_read(latency_result)[0]
+    return l.mean()
+
 if __name__ == "__main__":
     os.chdir(os.path.expanduser('~/compass/'))
     passage_file = "./data/dataset/msmarco_bert/passages/collection.tsv"

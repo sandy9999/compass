@@ -13,6 +13,8 @@ PROJECT_ID = "encrypted-search-404320"
 PRIVATE_KEY_PATH = os.path.expanduser("~/.ssh/compass_artifact.pem")
 USER_NAME = "artifact"
 
+throuput = []
+
 client_config = {
     # "name": "ae-client",
     "machine_type": "n2-standard-8",
@@ -41,6 +43,7 @@ compass_datasets = ["laion", "laion_mal", "sift", "sift_mal", "trip", "trip_mal"
 # compass_datasets = ["laion"]
 
 def prepare_instance(instance):
+    print("prepare instance: ", instance["name"])
     cmds = [
     "ps aux | grep compass | grep -v grep | awk '{print $2}' | xargs kill",
     "cd /home/artifact/compass/ && git pull",
@@ -276,7 +279,7 @@ def run_baseline_latency(server_instance, client_instance):
     n = 10
     for d in ["trip", "msmarco"]:
         for trunc in [10, 100, 1000, 10000]:
-            print("-> obi: " d):
+            # print("-> obi: ", d)
             f_latency = f"latency_obi_fast_{d}_{trunc}.fvecs"
             f_comm = f"comm_obi_{d}_{trunc}.fvecs"
 
@@ -309,7 +312,7 @@ def run_baseline_latency(server_instance, client_instance):
         remote_fpath_list.append(f_comm)
 
         s = "cd compass/build/ && " + f"./test_cluster_search r=1 d={d} ip={server_instance['internal_ip']} f_comm={f_comm}"
-            c = "cd compass/build/ && " + f"./test_cluster_search r=2 d={d} ip={server_instance['internal_ip']} f_comm={f_comm} f_latency={f_latency}"
+        c = "cd compass/build/ && " + f"./test_cluster_search r=2 d={d} ip={server_instance['internal_ip']} f_comm={f_comm} f_latency={f_latency}"
 
         threads = []
 
@@ -334,7 +337,7 @@ def run_baseline_latency(server_instance, client_instance):
     n = 10
     for d in ["trip", "msmarco"]:
         for trunc in [10, 100, 1000, 10000]:
-            print("-> obi: " d):
+            # print("-> obi: ", d)
             f_latency = f"latency_obi_slow_{d}_{trunc}.fvecs"
 
             remote_fpath_list.append(f_latency)
@@ -359,14 +362,14 @@ def run_baseline_latency(server_instance, client_instance):
     
     # cluster search
     for d in ["laion", "sift", "trip"]:
-        f_latency = f"latency_cluster_fast_{d}.fvecs"
+        f_latency = f"latency_cluster_slow_{d}.fvecs"
         f_comm = f"comm_cluster_{d}.fvecs"
 
         remote_fpath_list.append(f_latency)
         remote_fpath_list.append(f_comm)
 
         s = "cd compass/build/ && " + f"./test_cluster_search r=1 d={d} ip={server_instance['internal_ip']} f_comm={f_comm}"
-            c = "cd compass/build/ && " + f"./test_cluster_search r=2 d={d} ip={server_instance['internal_ip']} f_comm={f_comm} f_latency={f_latency}"
+        c = "cd compass/build/ && " + f"./test_cluster_search r=2 d={d} ip={server_instance['internal_ip']} f_comm={f_comm} f_latency={f_latency}"
 
         threads = []
 
@@ -552,23 +555,168 @@ def run_ablation_latency(server_instance, client_instance):
         "./script/artifact/results/"
     )
 
-    
     return
+
+def execute_commands_reduce(instance_name, ip, cmds, private_key_path, user_name, verbose, log_tp):
+
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    private_key = paramiko.RSAKey.from_private_key_file(private_key_path)
+
+    if log_tp:
+        id = int(instance_name.split('-')[-1])
+
+    try:
+        if verbose:
+            print(f"Try to connect to: {instance_name}")
+
+        ssh_client.connect(hostname=ip, username=user_name, pkey=private_key)
+        if verbose:
+            print(f"Connected to {instance_name} at {ip}")
+
+        for cmd in cmds:
+
+            if verbose:
+                print("exec_command: ", cmd)
+
+            transport = ssh_client.get_transport()
+            channel = transport.open_session()
+            channel.exec_command(cmd)
+
+            if verbose:
+                # Read the stdout in real-time
+                while True:
+                    # Check if data is ready to be read
+                    if channel.recv_ready():
+                        output = channel.recv(1024).decode('utf-8')  # Adjust buffer size if necessary
+                        print(f"[{instance_name}]: ", output, end="")  # Print the output without adding extra newlines
+                    
+                    # Check if the command is finished
+                    if channel.exit_status_ready():
+                        output = channel.recv(1024).decode('utf-8')  # Adjust buffer size if necessary
+                        print(f"[{instance_name}]: ",output, end="")  # Print the output without adding extra newlines
+                        break
+
+                    # Prevent high CPU usage in the loop
+                    time.sleep(0.1)
+            else:
+                # wait until the cmd is complete
+                while True:
+                    # Check if data is ready to be read
+                    if log_tp:
+                        if channel.recv_ready():
+                            output = channel.recv(1024).decode('utf-8')  # Adjust buffer size if necessary
+                            if output.split(" ")[0] == "Throughput:":
+                                tp = float(output.split(" ")[1])
+                                # print("assign to id: ", id, " length of trhouput: ", len(throuput))
+                                throuput[id] = tp
+                    
+                    # Check if the command is finished
+                    if channel.exit_status_ready():
+                        # output = channel.recv(1024).decode('utf-8')  # Adjust buffer size if necessary
+                        # print(f"[{instance_name}]: ",output, end="")  # Print the output without adding extra newlines
+                        break
+
+                    # Prevent high CPU usage in the loop
+                    time.sleep(0.1)
+
+        if verbose:
+            print("\n")
+
+        # Close the connection
+        ssh_client.close()
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+
+def tp_monitor():
+    while True:
+        total_tp = 0
+        for tp in throuput:
+            total_tp += tp
+        print("Total throughput: ", total_tp)
+        time.sleep(1)
+
+def run_throuput(server_instance, client_instances):
+
+    prepare_instance(server_instance)
+    for instance in client_instances:
+        prepare_instance(instance)
+
+    d = "laion"
+    port = 9000
+    n_clients = len(client_instances)
+    server_ip = server_instance["internal_ip"]
+
+    # monitor
+    global throuput
+    throuput = [0] * len(tracers)
+
+    threads = []
+
+    # server
+    cmd = f"cd compass/script/artifact/throughput/ && ./run_server.sh {n_clients} {server_ip}"
+    s_thread = threading.Thread(target=execute_commands_queit, args=(server_instance["name"], server_instance["internal_ip"], [cmd], PRIVATE_KEY_PATH, USER_NAME, False))
+    threads.append(s_thread)
+    s_thread.start()
+
+    # clients
+    cmds = []
+    for i in range(n_clients):
+        cmd = f"cd compass/build/  && ./test_compass_tp r=2 ip={server_ip} p={port+2*i} d={dataset}"
+        cmds.append(cmd)
+
+    reset_cmd = "ps aux | grep compass | grep -v grep | awk '{print $2}' | xargs kill"
+
+    for tracer, cmd in zip(client_instances, cmds):
+        thread = threading.Thread(target=execute_commands_reduce, args=(tracer["name"], tracer["internal_ip"], [reset_cmd, cmd], PRIVATE_KEY_PATH, USER_NAME, False, True))
+        threads.append(thread)
+        thread.start()
+
+    monitor_thread = threading.Thread(target=tp_monitor, args=())
+    threads.append(monitor_thread)
+    monitor_thread.start()
+
+    for thread in threads:
+        thread.join()
+
+
+
+
 
 if __name__ == "__main__":
     os.chdir(os.path.expanduser('~/compass/'))
-    (s_name, s_internal_ip) = create_instance(server_config, "ae-server")
-    (c_name, c_internal_ip) = create_instance(client_config, "ae-client")
+    # (s_name, s_internal_ip) = create_instance(server_config, "ae-server")
+    # (c_name, c_internal_ip) = create_instance(client_config, "ae-client")
 
     # c_instance = {
     #     "name": "ae_client",
-    #     "internal_ip": "10.128.0.28"
+    #     "internal_ip": "10.128.0.31"
     # }
 
-    # s_instance = {
-    #     "name": "ae_server",
-    #     "internal_ip": "10.128.0.27"
-    # }
+    s_instance = {
+        "name": "ae_server",
+        "internal_ip": "10.128.0.30"
+    }
+
+    # delete_instance(PROJECT_ID, ZONE, "ae-client")
+    # delete_instance(PROJECT_ID, ZONE, "ae-server")
+
+    tracers = create_tracers(client_config, 2)
+
+    run_throuput(s_instance, tracers)
+
+    tracer_names = [tracer["name"] for tracer in tracers]
+    delete_tracers(PROJECT_ID, ZONE, tracer_names)
+
+    # tracer_names = ['ae-throughput-tracer-0', 'ae-throughput-tracer-1', 'ae-throughput-tracer-2', 'ae-throughput-tracer-3', 'ae-throughput-tracer-4']
+    # delete_tracers(PROJECT_ID, ZONE, tracer_names)
+
+    # print(tracer_names)
+
+    # run_baseline_latency(s_instance, c_instance)
 
     # run_ablation_accuracy(s_instance)
     # run_ablation_latency(s_instance, c_instance)

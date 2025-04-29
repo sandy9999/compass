@@ -388,8 +388,16 @@ int main(int argc, char **argv) {
                 latency.size(),
                 1
             );
-
         }
+
+        double perceived_latency_sum = std::accumulate(s_stats.perceived_latency.begin(), s_stats.perceived_latency.end(), 0.0);
+        double avg_perceived_latency = perceived_latency_sum / n;
+
+        double full_latency_sum = std::accumulate(s_stats.full_latency.begin(), s_stats.full_latency.end(), 0.0);
+        double avg_full_latency = full_latency_sum / n;
+
+        std::cout << "Avg. perceived latency: " << avg_perceived_latency << std::endl;
+        std::cout << "Avg. full latency: " <<  avg_full_latency << std::endl;
 
         delete params;
 

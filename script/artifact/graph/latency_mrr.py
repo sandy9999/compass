@@ -27,23 +27,30 @@ def render_latency_mrr(compass_acc, compass_lat, cluster_acc, cluster_lat, tfidf
     compass_lat_wan = compass_lat[4:]
 
     cluster_acc = [0.9976, 0.439, 0.133, 0.117]
-    cluster_lat_lan = [14.0578, 35.0559, 325.273, 1769.2]
-    cluster_lat_wan = [20.7442, 55.3494, 350.798, 1808.5]
+    # the last result is extrapolated
+    cluster_lat_lan = cluster_lat[0] + [1769.2]
+    cluster_lat_wan = cluster_lat[1] + [1808.5]
+    # cluster_lat_lan = [14.0578, 35.0559, 325.273, 1769.2]
+    # cluster_lat_wan = [20.7442, 55.3494, 350.798, 1808.5]
 
     tfidf_acc = [
         [0.061 , 0.103, 0.191, 0.230],
         [0.016 , 0.023, 0.044, 0.075]
     ]
 
-    tfidf_lat_lan = [
-        [0.078, 0.304, 2.074, 17.049],
-        [0.095, 0.383, 2.753, 22.921]
-    ]
+    tfidf_lat_lan = tfidf_lat[0]
 
-    tfidf_lat_wan = [
-        [0.347, 0.924, 3.978, 23.21],
-        [0.516, 1.153, 4.811, 30.515]
-    ]
+    # tfidf_lat_lan = [
+    #     [0.078, 0.304, 2.074, 17.049],
+    #     [0.095, 0.383, 2.753, 22.921]
+    # ]
+
+    tfidf_lat_wan = tfidf_lat[1]
+
+    # tfidf_lat_wan = [
+    #     [0.347, 0.924, 3.978, 23.21],
+    #     [0.516, 1.153, 4.811, 30.515]
+    # ]
 
     # Plot on the first subplot
     # compass_trip_acc = []
@@ -257,4 +264,33 @@ if __name__ == "__main__":
             f_latency = f"./script/artifact/results/latency_{net}_{d}.fvecs"
             compass_lat.append(get_mean_perceived_lat(f_latency))
 
-    render_latency_mrr(compass_acc, compass_lat, [], [], [], [])
+    # tfidf latency
+    tfidf_lat = []
+    for net in ["fast", "slow"]:
+        net_lat = []
+        for d in ["trip", "msmarco"]:
+            tunc_lat = []
+            for trunc in [10, 100, 1000, 10000]:
+                f_latency = f"./script/artifact/results/latency_obi_{net}_{d}_{trunc}.fvecs"
+                tunc_lat.append(get_mean_tfidf_lat(f_latency))
+            net_lat.append(tunc_lat)
+        tfidf_lat.append(net_lat)
+
+    # cluster latency
+    cluster_lat = []
+    for net in ["fast", "slow"]:
+        net_lat = []
+        for d in ["laion", "sift", "trip"]:
+            f_latency = f"./script/artifact/results/latency_cluster_{net}_{d}.fvecs"
+            net_lat.append(get_mean_tfidf_lat(f_latency))
+        cluster_lat.append(net_lat)
+    
+    # print(cluster_lat)
+
+    # print(
+
+    render_latency_mrr(compass_acc, compass_lat, [], cluster_lat, [], tfidf_lat)
+    
+            
+
+
