@@ -296,7 +296,7 @@ def run_baseline_latency(server_instance, client_instance, verbose):
         for trunc in [10, 100, 1000, 10000]:
             print(f"-> Inv-ORAM: {d} truncation {trunc}")
             f_latency = f"latency_obi_fast_{d}_{trunc}.fvecs"
-            f_comm = f"comm_obi_{d}_{trunc}.fvecs"
+            f_comm = f"comm_obi_{d}_{trunc}.txt"
 
             remote_fpath_list.append(f_latency)
             remote_fpath_list.append(f_comm)
@@ -322,7 +322,7 @@ def run_baseline_latency(server_instance, client_instance, verbose):
     for d in ["laion", "sift", "trip"]:
         print("-> HE-Cluster:", d)
         f_latency = f"latency_cluster_fast_{d}.fvecs"
-        f_comm = f"comm_cluster_{d}.fvecs"
+        f_comm = f"comm_cluster_{d}.txt"
 
         remote_fpath_list.append(f_latency)
         remote_fpath_list.append(f_comm)
@@ -417,7 +417,7 @@ def run_baseline_latency(server_instance, client_instance, verbose):
 
     return
 
-def run_ablation_accuracy(instance):
+def run_ablation_accuracy(instance, verbose):
 
     d = "msmarco" 
 
@@ -461,7 +461,7 @@ def run_ablation_accuracy(instance):
         threads = []
 
         s_thread = threading.Thread(target=execute_commands_queit, args=(instance["name"], instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
-        c_thread = threading.Thread(target=execute_commands_queit, args=(instance["name"], instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+        c_thread = threading.Thread(target=execute_commands_queit, args=(instance["name"], instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, verbose))
         
         threads.append(s_thread)
         threads.append(c_thread)
@@ -485,7 +485,7 @@ def run_ablation_accuracy(instance):
     
     return 
 
-def run_ablation_latency(server_instance, client_instance):
+def run_ablation_latency(server_instance, client_instance, verbose):
 
     n = 10
     d="msmarco"
@@ -552,7 +552,7 @@ def run_ablation_latency(server_instance, client_instance):
         threads = []
 
         s_thread = threading.Thread(target=execute_commands_queit, args=(server_instance["name"], server_instance["internal_ip"], [s], PRIVATE_KEY_PATH, USER_NAME, False))
-        c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, True))
+        c_thread = threading.Thread(target=execute_commands_queit, args=(client_instance["name"], client_instance["internal_ip"], [c], PRIVATE_KEY_PATH, USER_NAME, verbose))
         
         threads.append(s_thread)
         threads.append(c_thread)

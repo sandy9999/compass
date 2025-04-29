@@ -2,6 +2,7 @@
 build/
 data/*/
 script/artifact/results/*
+eval_fig/
 tmp/
 *.out
 *__pycache__/

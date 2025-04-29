@@ -97,6 +97,7 @@ To reproduce the results in the paper, we have prepared a driver script `driver.
 
 ### Performance Experiments
 
+The performance experiments takes around 2 hrs.
 ```bash
 python3 driver.py --task performance
 ```

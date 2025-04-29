@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.markers as mks
 
-from accuracy_cal import *
+from script.artifact.graph.accuracy_cal import *
 
 def render_latency_mrr(compass_acc, compass_lat, cluster_acc, cluster_lat, tfidf_acc, tfidf_lat):
 
@@ -26,17 +26,17 @@ def render_latency_mrr(compass_acc, compass_lat, cluster_acc, cluster_lat, tfidf
     compass_lat_lan = compass_lat[0:4]
     compass_lat_wan = compass_lat[4:]
 
-    cluster_acc = [0.9976, 0.439, 0.133, 0.117]
+    # cluster_acc = [0.9976, 0.439, 0.133, 0.117]
     # the last result is extrapolated
     cluster_lat_lan = cluster_lat[0] + [1769.2]
     cluster_lat_wan = cluster_lat[1] + [1808.5]
     # cluster_lat_lan = [14.0578, 35.0559, 325.273, 1769.2]
     # cluster_lat_wan = [20.7442, 55.3494, 350.798, 1808.5]
 
-    tfidf_acc = [
-        [0.061 , 0.103, 0.191, 0.230],
-        [0.016 , 0.023, 0.044, 0.075]
-    ]
+    # tfidf_acc = [
+    #     [0.061 , 0.103, 0.191, 0.230],
+    #     [0.016 , 0.023, 0.044, 0.075]
+    # ]
 
     tfidf_lat_lan = tfidf_lat[0]
 
@@ -244,20 +244,23 @@ def render_latency_mrr(compass_acc, compass_lat, cluster_acc, cluster_lat, tfidf
     fig.legend(loc='upper center', bbox_to_anchor=(0.51, 1.04), ncol=6, frameon=False, handlelength=1.5, columnspacing=0.9)
 
     # Display the plot
-    plt.savefig('./script/artifact/results/point.pdf') 
-    # plt.show()
+    os.makedirs('./eval_fig', exist_ok=True)
+    plt.savefig('./eval_fig/figure6.pdf') 
     return 
 
-
-if __name__ == "__main__":
+def render_figure6():
     os.chdir(os.path.expanduser('~/compass/'))
+    print("Rendering figure 6...")
     # compass accuracy
+    print("-> compute compass accuracy")
+    acc_cal = AccCal()
     compass_acc = []
     for d in ["laion", "sift", "trip", "msmarco"]:
         f_accuracy = f"./script/artifact/results/accuracy_{d}.ivecs"
-        compass_acc.append(compute_mrr(d, f_accuracy))
+        compass_acc.append(acc_cal.compute_mrr(d, f_accuracy))
 
     # compass latency
+    print("-> compute compass latency")
     compass_lat = []
     for net in ["fast", "slow"]:
         for d in ["laion_mal", "sift_mal", "trip_mal", "msmarco_mal"]:
@@ -265,6 +268,7 @@ if __name__ == "__main__":
             compass_lat.append(get_mean_perceived_lat(f_latency))
 
     # tfidf latency
+    print("-> compute inv-oram latency")
     tfidf_lat = []
     for net in ["fast", "slow"]:
         net_lat = []
@@ -276,7 +280,23 @@ if __name__ == "__main__":
             net_lat.append(tunc_lat)
         tfidf_lat.append(net_lat)
 
+    # tfidf accuracy
+    print("-> compute inv-oram accuracy")
+    tfidf_acc = []
+    tfidf_msmarco_acc = []
+    for trunc in [10, 100, 1000, 10000]:
+        f_accuracy = f"./data/dataset/msmarco_bert/obi_{trunc}.ivecs"
+        tfidf_msmarco_acc.append(acc_cal.compute_mrr("msmarco", f_accuracy))
+
+    tfidf_trip_acc = []
+    for trunc in [10, 100, 1000, 10000]:
+        f_accuracy = f"./data/dataset/trip_distilbert/obi_{trunc}.ivecs"
+        tfidf_trip_acc.append(acc_cal.compute_mrr("trip", f_accuracy))
+
+    tfidf_acc = [tfidf_trip_acc, tfidf_msmarco_acc]
+    
     # cluster latency
+    print("-> compute he-cluster latency")
     cluster_lat = []
     for net in ["fast", "slow"]:
         net_lat = []
@@ -285,11 +305,20 @@ if __name__ == "__main__":
             net_lat.append(get_mean_tfidf_lat(f_latency))
         cluster_lat.append(net_lat)
     
-    # print(cluster_lat)
+    # cluster accuracy
+    print("-> compute he-cluster accuracy")
+    cluster_acc = []
+    cluster_acc.append(acc_cal.compute_mrr("laion", "./data/dataset/laion1m/100k/cluster_laion.ivecs"))
+    cluster_acc.append(acc_cal.compute_mrr("sift", "./data/dataset/sift/cluster_sift.ivecs"))
+    cluster_acc.append(acc_cal.compute_mrr("trip", "./data/dataset/trip_distilbert/cluster_trip.ivecs"))
+    cluster_acc.append(acc_cal.compute_mrr("msmarco", "./data/dataset/msmarco_bert/cluster_msmarco.ivecs"))
 
-    # print(
+    render_latency_mrr(compass_acc, compass_lat, cluster_acc, cluster_lat, tfidf_acc, tfidf_lat)
+    print(" -> Done.")
 
-    render_latency_mrr(compass_acc, compass_lat, [], cluster_lat, [], tfidf_lat)
+
+if __name__ == "__main__":
+    render_figure6()
     
             
 

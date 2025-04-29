@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 
 def ivecs_read(fname):
@@ -209,10 +210,9 @@ def draw_latency_breakdown(raw_data):
 
     fig.legend(loc='upper center', bbox_to_anchor=(0.56, 1.03), ncol=2, frameon=False)
 
-    plt.savefig('latency_breakdown.pdf') 
-    # Adjust layout and show the plot
-    # plt.tight_layout()
-    # plt.show()
+    # Display the plot
+    os.makedirs('./eval_fig', exist_ok=True)
+    plt.savefig('./eval_fig/figure7.pdf') 
 
 def render_latency_breakdown():
     datasets = ["laion", "sift", "trip", "msmarco", "laion_mal", "sift_mal", "trip_mal", "msmarco_mal"]
@@ -235,33 +235,41 @@ def render_latency_breakdown():
 
     draw_latency_breakdown(raw_data)
 
+def render_figure7():
 
-if __name__ == "__main__":
-    
+    print("Rendering figure 7...")
+    os.chdir(os.path.expanduser('~/compass/'))
+
     datasets = ["laion", "sift", "trip", "msmarco", "laion_mal", "sift_mal", "trip_mal", "msmarco_mal"]
     network = ["fast", "slow"]
-
     raw_data = []
     # laion
     for d in datasets:
         raw_data_of_d = []
         for n in network:
-            f_name = "../results/latency_" + n + "_" + d + ".fvecs"
+            f_name = "./script/artifact/results/latency_" + n + "_" + d + ".fvecs"
             l = fvecs_read(f_name)[0]
             nq = int(l.shape[0] / 2)
             per_l = l[0:nq]
             full_l = l[nq:]
             raw_data_of_d.append(per_l)
             raw_data_of_d.append(full_l)
-            print(d, n)
-            print("perceived latency: ", per_l.mean())
-            print("full latency: ", full_l.mean())
-            print("perceived latency error: ", np.std(per_l))
-            print("full latency error: ", np.std(full_l))
+            # print(d, n)
+            # print("perceived latency: ", per_l.mean())
+            # print("full latency: ", full_l.mean())
+            # print("perceived latency error: ", np.std(per_l))
+            # print("full latency error: ", np.std(full_l))
             # exit()
         raw_data.append(raw_data_of_d)
 
     draw_latency_breakdown(raw_data)
+    print(" -> Done.")
+
+
+if __name__ == "__main__":
+    render_figure7()
+    
+    
 
     
 

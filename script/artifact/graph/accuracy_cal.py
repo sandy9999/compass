@@ -102,18 +102,18 @@ def prepare_mrr_text(passage_file, query_file, qrel_file):
 
 def compute_mrr_text(passage_file, query_file, qrel_file, result_path):
     # create poffset to pid  mapping
-    print("Create posffset to pid mapping...")
+    # print("Create posffset to pid mapping...")
     passage_df = pd.read_csv(passage_file,sep='\t', header=None)
     passage_df.rename(columns={0: "pid", 1: "passage_text"}, inplace=True)
 
     offset_to_pid = passage_df.iloc[:, 0].tolist()
-    print(offset_to_pid[0:10])
-    print(len(offset_to_pid))
+    # print(offset_to_pid[0:10])
+    # print(len(offset_to_pid))
     # for index, row in passage_df.iterrows():
     #     offset_to_pid.append(row["pid"])
 
     # create qrel mapping
-    print("Create qrel mapping...")
+    # print("Create qrel mapping...")
     qrel_df = pd.read_csv(qrel_file,sep='\t', header=None)
     qrel_df.rename(columns={0: "qid", 1: "none", 2: "pid", 3: "relevance_score"}, inplace=True)
 
@@ -137,7 +137,7 @@ def compute_mrr_text(passage_file, query_file, qrel_file, result_path):
     # print(qrels[38])
 
     # create qoffset to qid mapping
-    print("Create qoffset to qid mapping...")
+    # print("Create qoffset to qid mapping...")
     query_df = pd.read_csv(query_file,sep='\t', header=None)
     query_df.rename(columns={0: "qid", 1: "query"}, inplace=True)
 
@@ -145,8 +145,8 @@ def compute_mrr_text(passage_file, query_file, qrel_file, result_path):
     for index, row in query_df.iterrows():
         offset_to_qid.append(row["qid"])
 
-    print(offset_to_qid[0:10])
-    print(len(offset_to_qid))
+    # print(offset_to_qid[0:10])
+    # print(len(offset_to_qid))
 
     # for qid in offset_to_qid:
     #     if qid not in qrels.keys():
@@ -166,55 +166,6 @@ def compute_mrr_text(passage_file, query_file, qrel_file, result_path):
             qrels
         )
 
-def mrr_msmarco(search_result):
-    passage_file = "./data/dataset/msmarco_bert/passages/collection.tsv"
-    query_file = "./data/dataset/msmarco_bert/passages/queries.dev.small.tsv"
-    qrel_file = "./data/dataset/msmarco_bert/passages/qrels.dev.small.tsv"
-    return compute_mrr_text(passage_file, query_file, qrel_file, search_result)
-
-def mrr_trip(search_result):
-    passage_file = "./data/dataset/trip_distilbert/benchmark_tsv/documents/docs.tsv"
-    query_file = "./data/dataset/trip_distilbert/benchmark_tsv/topics/topics.head.val.tsv"
-    qrel_file = "./data/dataset/trip_distilbert/benchmark_tsv/qrels/qrels.dctr.head.val.tsv"
-    return compute_mrr_text(passage_file, query_file, qrel_file, search_result)
-
-def mrr_sift(search_result):
-    gt = ivecs_read("./data/dataset/sift/gt.ivecs")
-    gt = gt[:, 0]
-    search_result= ivecs_read(search_result)
-    rr = []
-    for i in range(gt.shape[0]):
-        rank = np.where(search_result[i] == gt[i])[0]
-        if rank.shape[0] > 0:
-            rr.append(1.0 / (rank[0] + 1))
-        else:
-            rr.append(0)
-    return mean(rr)
-
-def mrr_laion(search_result):
-    gt = ivecs_read("./data/dataset/laion1m/100k/gt.ivecs")
-    gt = gt[:, 0]
-    search_result= ivecs_read(search_result)
-    rr = []
-    for i in range(gt.shape[0]):
-        rank = np.where(search_result[i] == gt[i])[0]
-        if rank.shape[0] > 0:
-            rr.append(1.0 / (rank[0] + 1))
-        else:
-            rr.append(0)
-    return mean(rr)
-
-def compute_mrr(d, search_result):
-    if d == "sift":
-        return mrr_sift(search_result)
-    if d == "laion":
-        return mrr_laion(search_result)
-    if d == "trip":
-        return mrr_trip(search_result)
-    if d == "msmarco":
-        return mrr_msmarco(search_result)
-    assert(0)
-
 def get_mean_perceived_lat(latency_result):
     l = fvecs_read(latency_result)[0]
     nq = int(l.shape[0] / 2)
@@ -230,6 +181,63 @@ def get_mean_full_lat(latency_result):
 def get_mean_tfidf_lat(latency_result):
     l = fvecs_read(latency_result)[0]
     return l.mean()
+
+class AccCal():
+
+    def __init__(self):
+        # trip
+        trip_passage_file = "./data/dataset/trip_distilbert/benchmark_tsv/documents/docs.tsv"
+        trip_query_file = "./data/dataset/trip_distilbert/benchmark_tsv/topics/topics.head.val.tsv"
+        trip_qrel_file = "./data/dataset/trip_distilbert/benchmark_tsv/qrels/qrels.dctr.head.val.tsv"
+        self.trip_meta = prepare_mrr_text(trip_passage_file, trip_query_file, trip_qrel_file)
+        # msmarco
+        msmarco_passage_file = "./data/dataset/msmarco_bert/passages/collection.tsv"
+        msmarco_query_file = "./data/dataset/msmarco_bert/passages/queries.dev.small.tsv"
+        msmarco_qrel_file = "./data/dataset/msmarco_bert/passages/qrels.dev.small.tsv"
+        self.msmarco_meta = prepare_mrr_text(msmarco_passage_file, msmarco_query_file, msmarco_qrel_file)
+
+    def mrr_msmarco(self, search_result):
+        return evaluate_mrr(ivecs_read(search_result).tolist(), self.msmarco_meta[0], self.msmarco_meta[1], self.msmarco_meta[2])
+
+    def mrr_trip(self, search_result):
+        return evaluate_mrr(ivecs_read(search_result).tolist(), self.trip_meta[0], self.trip_meta[1], self.trip_meta[2])
+
+    def mrr_sift(self, search_result):
+        gt = ivecs_read("./data/dataset/sift/gt.ivecs")
+        gt = gt[:, 0]
+        search_result= ivecs_read(search_result)
+        rr = []
+        for i in range(gt.shape[0]):
+            rank = np.where(search_result[i] == gt[i])[0]
+            if rank.shape[0] > 0:
+                rr.append(1.0 / (rank[0] + 1))
+            else:
+                rr.append(0)
+        return mean(rr)
+
+    def mrr_laion(self, search_result):
+        gt = ivecs_read("./data/dataset/laion1m/100k/gt.ivecs")
+        gt = gt[:, 0]
+        search_result= ivecs_read(search_result)
+        rr = []
+        for i in range(gt.shape[0]):
+            rank = np.where(search_result[i] == gt[i])[0]
+            if rank.shape[0] > 0:
+                rr.append(1.0 / (rank[0] + 1))
+            else:
+                rr.append(0)
+        return mean(rr)
+        
+    def compute_mrr(self, d, search_result):
+        if d == "sift":
+            return self.mrr_sift(search_result)
+        if d == "laion":
+            return self.mrr_laion(search_result)
+        if d == "trip":
+            return self.mrr_trip(search_result)
+        if d == "msmarco":
+            return self.mrr_msmarco(search_result)
+        assert(0)
 
 if __name__ == "__main__":
     os.chdir(os.path.expanduser('~/compass/'))

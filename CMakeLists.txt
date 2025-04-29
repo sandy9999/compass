@@ -26,6 +26,10 @@ add_executable(test_compass_accuracy ./tests/test_compass_accuracy.cpp ./src/clu
 target_link_libraries(test_compass_accuracy PRIVATE faiss oram_library argmap rapidjson)
 target_link_libraries(test_compass_accuracy PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} )
 
+add_executable(test_compass_accuracy_ablation ./tests/test_compass_accuracy_ablation.cpp ./src/cluster.cpp ./src/node.cpp ./src/graph.cpp ./tests/utils/config_parser.cpp)
+target_link_libraries(test_compass_accuracy_ablation PRIVATE faiss oram_library argmap rapidjson)
+target_link_libraries(test_compass_accuracy_ablation PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} )
+
 add_executable(test_compass_tp ./tests/test_compass_ring_tp.cpp ./src/cluster.cpp ./src/node.cpp ./src/graph.cpp ./tests/utils/config_parser.cpp)
 target_link_libraries(test_compass_tp PRIVATE faiss oram_library argmap rapidjson)
 target_link_libraries(test_compass_tp PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} )

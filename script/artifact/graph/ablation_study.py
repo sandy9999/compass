@@ -1,7 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 
-from accuracy_cal import *
+from script.artifact.graph.accuracy_cal import *
 
 def ivecs_read(fname):
     a = np.fromfile(fname, dtype='int32')
@@ -11,8 +11,9 @@ def ivecs_read(fname):
 def fvecs_read(fname):
     return ivecs_read(fname).view('float32')
 
-def render_msmarco_ablation():
-
+def render_figure8():
+    print("Rendering figure 6...")
+    os.chdir(os.path.expanduser('~/compass/'))
     d = "msmarco"
 
     ef_spec_x = []
@@ -41,7 +42,7 @@ def render_msmarco_ablation():
     efn = 24
     efspec = 1
     while efspec <= 16:
-        print("-> efspec: ", efspec)
+        # print("-> efspec: ", efspec)
         f_latency  = result_prefix + f"ablation_latency_{d}_{efspec}_{efn}.fvecs"
         f_accuracy  = result_prefix + f"ablation_accuracy_{d}_{efspec}_{efn}.ivecs"
 
@@ -67,8 +68,8 @@ def render_msmarco_ablation():
     efspec = 8
     efn = 1
     while efn <= 256:
-        print("-> efn: ", efn)
-        f_latency  = result_prefix + f"ablation_latency_{d}_{efspec}_{efn}.ivecs"
+        # print("-> efn: ", efn)
+        f_latency  = result_prefix + f"ablation_latency_{d}_{efspec}_{efn}.fvecs"
         f_accuracy  = result_prefix + f"ablation_accuracy_{d}_{efspec}_{efn}.ivecs"
 
         # mean perceived latency
@@ -80,8 +81,8 @@ def render_msmarco_ablation():
         nq = int(latency.shape[0] / 2)
         per_latency = latency[0:nq]
 
-        if efn == 1:
-            print("mrr: ", mrr)
+        # if efn == 1:
+        #     print("mrr: ", mrr)
 
         ef_neighbor_x.append(per_latency.mean())
         ef_neighbor_y.append(mrr)
@@ -172,11 +173,9 @@ def render_msmarco_ablation():
 
     fig.legend(loc='lower right', bbox_to_anchor=(0.8, 0.18))
 
-    # # Display the plot
-    plt.savefig('./script/artifact/results/ablation_point.pdf') 
-    # plt.show()
+    os.makedirs('./eval_fig', exist_ok=True)
+    plt.savefig('./eval_fig/figure8.pdf') 
 
 
 if __name__ == "__main__":
-    os.chdir(os.path.expanduser('~/compass/'))
-    render_msmarco_ablation()
+    render_figure8()
