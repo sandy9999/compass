@@ -43,7 +43,7 @@ compass_datasets = ["laion", "laion_mal", "sift", "sift_mal", "trip", "trip_mal"
 # compass_datasets = ["laion"]
 
 def prepare_instance(instance):
-    print("prepare instance: ", instance["name"])
+    print("Prepare instance: ", instance["name"])
     cmds = [
     "ps aux | grep compass | grep -v grep | awk '{print $2}' | xargs kill",
     "cd /home/artifact/compass/ && git pull",
@@ -562,7 +562,7 @@ def execute_commands_reduce(instance_name, ip, cmds, private_key_path, user_name
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    private_key = paramiko.RSAKey.from_private_key_file(private_key_path)
+    private_key = paramiko.Ed25519Key.from_private_key_file(private_key_path)
 
     if log_tp:
         id = int(instance_name.split('-')[-1])
@@ -610,6 +610,7 @@ def execute_commands_reduce(instance_name, ip, cmds, private_key_path, user_name
                             if output.split(" ")[0] == "Throughput:":
                                 tp = float(output.split(" ")[1])
                                 # print("assign to id: ", id, " length of trhouput: ", len(throuput))
+                                # print(throuput)
                                 throuput[id] = tp
                     
                     # Check if the command is finished
@@ -645,14 +646,15 @@ def run_throuput(server_instance, client_instances):
     for instance in client_instances:
         prepare_instance(instance)
 
-    d = "laion"
+    dataset = "laion"
     port = 9000
     n_clients = len(client_instances)
     server_ip = server_instance["internal_ip"]
 
     # monitor
     global throuput
-    throuput = [0] * len(tracers)
+    throuput = [0] * len(client_instances)
+    print(throuput)
 
     threads = []
 
@@ -692,24 +694,37 @@ if __name__ == "__main__":
     # (c_name, c_internal_ip) = create_instance(client_config, "ae-client")
 
     # c_instance = {
-    #     "name": "ae_client",
+    #     "name": "ae-client",
     #     "internal_ip": "10.128.0.31"
     # }
 
     s_instance = {
-        "name": "ae_server",
+        "name": "ae-server",
         "internal_ip": "10.128.0.30"
     }
 
     # delete_instance(PROJECT_ID, ZONE, "ae-client")
     # delete_instance(PROJECT_ID, ZONE, "ae-server")
 
-    tracers = create_tracers(client_config, 2)
+    tracers = create_tracers(client_config, 25)
+
+    # tracer_instance_1 = {
+    #     "name": "ae-throughput-tracer-0",
+    #     "internal_ip": "10.128.0.40"
+    # }
+
+    # tracer_instance_2 = {
+    #     "name": "ae-throughput-tracer-1",
+    #     "internal_ip": "10.128.0.41"
+    # }
+
+    # tracers = [tracer_instance_1, tracer_instance_2]
+
 
     run_throuput(s_instance, tracers)
 
-    tracer_names = [tracer["name"] for tracer in tracers]
-    delete_tracers(PROJECT_ID, ZONE, tracer_names)
+    # tracer_names = [tracer["name"] for tracer in tracers]
+    # delete_tracers(PROJECT_ID, ZONE, tracer_names)
 
     # tracer_names = ['ae-throughput-tracer-0', 'ae-throughput-tracer-1', 'ae-throughput-tracer-2', 'ae-throughput-tracer-3', 'ae-throughput-tracer-4']
     # delete_tracers(PROJECT_ID, ZONE, tracer_names)
