@@ -31,7 +31,7 @@ This repository is structured as follows:
 We've uploaded the datasets, indices, and pre-built initial client and server states to a public Google Cloud Storage bucket. To download all the files, run
 
 ```bash
-python3 ./script/gcp_download.py
+python3 ./script/gcs_download.py
 ```
 
 ### Build 
@@ -86,34 +86,71 @@ tcset $device_name --delay 0.5ms --rate 3Gbps
 
 # slow network
 tcset $device_name --delay 40ms --rate 400Mbps
-```
 
+# reset
+tcdel $device_name --all
+```
 
 
 ## Artifact Evaluation - Reproducing results 
 
-To reproduce the results in the paper, we have prepared a driver script `driver.py` and provisioned a GCP instance for our artifact evaluators. This script needs to be run within the server for launching instances for benchmarking.
+To reproduce the results in the paper, we have prepared a driver script `driver.py` and provisioned a GCP instance for our artifact evaluators. This script needs to be run within the provisioned instance for launching testing instances during the experiments. 
 
 
 ### Performance Experiments
 
-The performance experiments takes around 2 hrs.
+The performance experiments includes the accuracy and latency experiments. It takes around 2hrs. The following command will create two instances (one server and one client) and run latency experiments between them. The accuracy experiments will be run locally in the server instance for faster results. After the experiments, the results will be fetched to the provisioned instance, under directory `./script/artifact/results/`. The server and the client will be terminated once the performance experiments are done. 
 ```bash
 python3 driver.py --task performance
 ```
 
 ### Ablation study
 
+The following command launch the ablation study on `msmarco` dataset under `slow` network configuration. It takes around 1.5hrs. Similar to the performance experiments, two instances will be launched and after the experiment the results will be fetched and isnatnces will be terminated.
+```bash
+python3 driver.py --task ablation
+```
 
 
 ### Figure 6
 
+Once `performance` experiment is done, run following command to render figure 6. The figure will be in pdf format under `eval_fig/`.
+```bash
+python3 driver.py --plot figure6
+```
+
 ### Figure 7
+Once `performance` experiment is done, run following command to render figure 7. The figure will be in pdf format under `eval_fig/`.
+```bash
+python3 driver.py --plot figure7
+```
 
 ### Table 3
+Once `performance` experiment is done, run following command to print out the values in Table 3.
+```bash
+python3 driver.py --plot table3
+```
 
 ### Table 4
+Once `performance` experiment is done, run following command to print out the values in Table 4.
+```bash
+python3 driver.py --plot table4
+```
 
 ### Figure 8
+Once `ablation` experiment is done, run following command to render figure 8. The figure will be in pdf format under `eval_fig/`.
+```bash
+python3 driver.py --plot figure8
+```
 
 ### Throughput
+
+```bash
+python3 driver.py --task throuput
+```
+
+### Failure handling
+
+```bash
+python3 driver.py --task stop_instances
+```

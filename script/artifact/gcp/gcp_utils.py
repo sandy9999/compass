@@ -21,7 +21,8 @@ def create_instance(config, instance_name):
     # Configure boot disk
     initialize_params = compute_v1.AttachedDiskInitializeParams(
         source_image=config['boot_disk_image'],
-        disk_size_gb=config.get('disk_size_gb', 10)  # Default 10GB
+        disk_size_gb=config.get('disk_size_gb', 10), 
+        disk_type=config["disk_type"]
     )
     boot_disk = compute_v1.AttachedDisk(
         boot=True, auto_delete=True, initialize_params=initialize_params
@@ -110,3 +111,44 @@ def delete_tracers(project_id, zone, tracer_names):
     # Wait for all threads to finish
     for thread in threads:
         thread.join()
+
+def get_instances(project_id):
+    """
+    List all Compute Engine instances in the given project.
+
+    :param project_id: Your GCP project ID
+    """
+    instance_client = compute_v1.InstancesClient()
+    aggregated_list = instance_client.aggregated_list(project=project_id)
+
+    instances_list = []
+
+    # Iterate through the aggregated list
+    for zone, scoped_list in aggregated_list:
+        # Check if there are instances in this zone
+        if scoped_list.instances:
+            print(f"Zone: {zone}") 
+            for instance in scoped_list.instances:
+
+                metadata = {}
+
+                internal_ip = None
+                external_ip = None
+
+                for network_interface in instance.network_interfaces:
+                    internal_ip = network_interface.network_i_p
+                    if network_interface.access_configs:
+                        external_ip = network_interface.access_configs[0].nat_i_p
+
+                metadata["name"] = instance.name
+                # metadata["status"] = instance.status
+                # metadata["type"] = instance.machine_type.split('/')[-1]
+                metadata["internal_ip"] = internal_ip
+                # metadata["external_ip"] = external_ip
+                
+                instances_list.append(metadata)
+        else:
+            # print(f"Zone: {zone} has no instances.")
+            continue
+
+    return instances_list

@@ -8,11 +8,14 @@ def download_public_bucket(bucket_name, destination_dir):
 
     for blob in blobs:
         dest_file_path = os.path.join(destination_dir, blob.name)
-        os.makedirs(os.path.dirname(dest_file_path), exist_ok=True)  # Ensure directory exists
+        os.makedirs(os.path.dirname(dest_file_path), exist_ok=True)
 
-        print(f"Downloading {blob.name}...")
-        blob.download_to_filename(dest_file_path)
-
+        # Check if file already exists locally
+        if not os.path.exists(dest_file_path):
+            print(f"Downloading {blob.name}...")
+            blob.download_to_filename(dest_file_path)
+        else:
+            print(f"{blob.name} already exists, skipping download.")
 
 # Usage
 bucket_name = 'compass_osdi'

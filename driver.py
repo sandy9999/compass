@@ -14,63 +14,65 @@ from script.artifact.graph.memory_consumption import pretty_print_mem
 from script.artifact.graph.ablation_study import render_figure8
 
 def run_performance(verbose):
-    # s_instance = create_instance(server_config, "ae-perf-server")
-    # c_instance = create_instance(client_config, "ae-perf-client")
+    s_instance = create_instance(server_config, "ae-perf-server")
+    c_instance = create_instance(client_config, "ae-perf-client")
 
     # waiting a bit for server to be ready
     # print("Sleep a bit for instances to be ready.")
-    # time.sleep(10)
-
-    c_instance = {
-        "name": "ae-client",
-        "internal_ip": "10.128.0.44"
-    }
-
-    s_instance = {
-        "name": "ae-server",
-        "internal_ip": "10.128.0.38"
-    }
+    check_ssh_instances([s_instance, c_instance])
 
     # accuracy
     run_compass_accuracy(s_instance, verbose)
 
     # latency
-    # run_compass_latency(s_instance, c_instance, verbose)
+    run_compass_latency(s_instance, c_instance, verbose)
 
     # baseline
     run_baseline_latency(s_instance, c_instance, verbose)
 
-    # delete_instance(PROJECT_ID, ZONE, s_instance["name"])
-    # delete_instance(PROJECT_ID, ZONE, c_instance["name"])
+    delete_instance(PROJECT_ID, ZONE, s_instance["name"])
+    delete_instance(PROJECT_ID, ZONE, c_instance["name"])
     return 
 
 
 def run_ablation(verbose):
-    # s_instance = create_instance(server_config, "ae-ablation-server")
-    # c_instance = create_instance(client_config, "ae-ablation-client")
+    s_instance = create_instance(server_config, "ae-ablation-server")
+    c_instance = create_instance(client_config, "ae-ablation-client")
 
-    c_instance = {
-        "name": "ae-client",
-        "internal_ip": "10.128.0.44"
-    }
+    check_ssh_instances([s_instance, c_instance])
 
-    s_instance = {
-        "name": "ae-server",
-        "internal_ip": "10.128.0.38"
-    }
+    # c_instance = {
+    #     "name": "ae-client",
+    #     "internal_ip": "10.128.0.43"
+    # }
 
+    # s_instance = {
+    #     "name": "ae-server",
+    #     "internal_ip": "10.128.0.42"
+    # }
 
     # accuracy 
-    run_ablation_accuracy(s_instance, verbose)
+    # run_ablation_accuracy(s_instance, verbose)
+    run_ablation_accuracy_optimized(s_instance, verbose)
 
     # latency
     run_ablation_latency(s_instance, c_instance, verbose)
 
-    # render
-    # render_msmarco_ablation()
+    delete_instance(PROJECT_ID, ZONE, s_instance["name"])
+    delete_instance(PROJECT_ID, ZONE, c_instance["name"])
 
-    # delete_instance(PROJECT_ID, ZONE, s_instance["name"])
-    # delete_instance(PROJECT_ID, ZONE, c_instance["name"])
+def run_throuput(verbose):
+    s_instance = create_instance(server_config, "ae-server-2")
+    tracers = create_tracers(client_config, 25)
+
+    check_ssh_instances([s_instance] + tracers)
+
+    run_throughput(s_instance, tracers, verbose)
+
+    tracer_names = [tracer["name"] for tracer in tracers]
+    delete_tracers(PROJECT_ID, ZONE, tracer_names)
+    delete_instance(PROJECT_ID, ZONE, s_instance["name"])
+
 
 if __name__ == "__main__":
     try:
@@ -78,8 +80,8 @@ if __name__ == "__main__":
         
         parser.add_argument(
             "--task",
-            choices=["performance", "ablation"],
-            help="specify the task to run: performance, or ablation"
+            choices=["performance", "ablation", "stop_instances"],
+            help="specify the task to run: performance, ablation, or stop all ae instances"
         )
 
         parser.add_argument(
@@ -105,7 +107,9 @@ if __name__ == "__main__":
             elif args.task == "ablation":
                 print("Running ablation task")
                 run_ablation(args.verbose)
-        
+            elif args.task == "stop_instances":
+                stop_instances()
+            
         if args.plot:
             if args.plot == "figure6":
                 render_figure6()

@@ -35,7 +35,7 @@ def pretty_print_mem():
     print("--> Client Total: {:.2f} MB".format(total))
 
     print("# TripClick: ")
-    print("--> Embed Size: {:.2f} GB".format(get_size_gb("data/dataset/trip_distilbert/queries.fvecs")))
+    print("--> Embed Size: {:.2f} GB".format(get_size_gb("data/dataset/trip_distilbert/passages.fvecs")))
     print("--> Graph Size: {:.2f} GB".format(get_size_gb("data/dataset/trip_distilbert/hnsw_128_160_2_ip.index")))
     print("--> Server SH: {:.2f} GB".format(get_size_gb("data/snap/server/trip/buckets.bin")))
     print("--> Server MAL: {:.2f} GB".format(get_size_gb("data/snap/server/trip/buckets.bin") + get_size_gb("data/snap/client/trip/hash.bin")))

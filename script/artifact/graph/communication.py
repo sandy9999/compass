@@ -21,12 +21,12 @@ def pretty_print_comm():
     print("Communication cost of Compass: ")
     for d in compass_datasets:
         comm, rnd = parse_compass_comm(f"./script/artifact/results/comm_{d}.txt")
-        print(f"{d:<12}:  {comm:>8.2f} MB {rnd:>2} RT")
+        print(f"{d:<12}:  {comm:>8.1f} MB {rnd:>2} RT")
 
     print("Communication cost of HE-Cluster: ")
     for d in ["laion", "sift", "trip"]:
         comm, rnd = parse_cluster_comm(f"./script/artifact/results/comm_cluster_{d}.txt")
-        print(f"{d:<12}:  {comm:>8.2f} MB {rnd:>2} RT")
+        print(f"{d:<12}:  {comm:>8.1f} MB {rnd:>2} RT")
     
     d = "msmarco"
     print(f"{d:<12}:  - -")
@@ -37,8 +37,8 @@ def pretty_print_comm():
     d = "sift"
     print(f"{d:<12}:  - -")
     for d in ["trip", "msmarco"]:
-        comm, rnd = parse_tfidf_comm(f"./script/artifact/results/comm_obi_{d}_10000.txt")
-        print(f"{d:<12}:  {comm:>8.2f} MB {rnd:>2} RT")
+        comm, rnd = parse_tfidf_comm(f"./script/artifact/results/comm_obi_{d}_10000.")
+        print(f"{d:<12}:  {comm:>8.1f} MB {rnd:>2} RT")
 
 if __name__ == "__main__":
     pretty_print_comm()

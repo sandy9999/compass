@@ -85,3 +85,27 @@ def scp_from_remote(hostname, username, key_filepath, remote_filepath, local_dir
     # Close connections
     sftp.close()
     ssh.close()
+
+def check_ssh_connection(hostname, username, key_filepath, verbose, timeout=300, interval=5):
+    start_time = time.time()
+    private_key = paramiko.Ed25519Key.from_private_key_file(key_filepath)
+
+    while time.time() - start_time < timeout:
+        ssh_client = paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            ssh_client.connect(hostname, username=username, pkey=private_key, timeout=10)
+            if verbose:
+                print(f"✅ Successfully connected to {hostname}")
+            ssh_client.close()
+            return True
+        except (paramiko.ssh_exception.NoValidConnectionsError,
+                paramiko.AuthenticationException,
+                paramiko.ssh_exception.SSHException,
+                TimeoutError) as e:
+            if verbose:
+                print(f"⏳ Waiting for SSH... ({e})")
+            time.sleep(interval)
+
+    raise TimeoutError(f"SSH connection to {hostname} failed after {timeout}s. Last error: {last_exception}")

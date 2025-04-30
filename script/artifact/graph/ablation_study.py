@@ -65,6 +65,7 @@ def render_figure8():
 
         efspec = efspec*2
 
+
     efspec = 8
     efn = 1
     while efn <= 256:
@@ -84,10 +85,10 @@ def render_figure8():
         # if efn == 1:
         #     print("mrr: ", mrr)
 
-        ef_neighbor_x.append(per_latency.mean())
+        ef_neighbor_x.append(float(per_latency.mean()))
         ef_neighbor_y.append(mrr)
         efn = efn*2
-
+    
     # lazy
     f_lazy_latency = result_prefix + f"ablation_latency_{d}_lazy.fvecs"
     lazy_latency = fvecs_read(f_lazy_latency)[0]
@@ -120,15 +121,15 @@ def render_figure8():
     # compass_trip_latency = [1.251]
 
     ax1.text(ef_neighbor_x[0] + 0.15, ef_neighbor_y[0] + 0.002, "efn=1")
-    ax1.text(ef_neighbor_x[-1] - 0.75, ef_neighbor_y[-1] + 0.005, "efn=256")
+    ax1.text(ef_neighbor_x[-1] - 1.05, ef_neighbor_y[-1] + 0.004, "efn=256")
 
-    ax1.text(ef_spec_x[0] + 0.15, ef_spec_y[0] - 0.015, "efspec=1")
-    ax1.text(ef_spec_x[-1] + 0.15, ef_spec_y[-1] - 0.003, "efspec=16")
+    ax1.text(ef_spec_x[0] - 0.08, ef_spec_y[0] - 0.025, "efspec=1")
+    ax1.text(ef_spec_x[-1] + 0.15, ef_spec_y[-1] - 0.01, "efspec=16")
 
     ax1.plot(ef_neighbor_x, ef_neighbor_y, color="#fd8282", label="efn=[1, 256]", marker='>', linestyle='-', zorder=2, markersize = 5)
     ax1.plot(ef_spec_x, ef_spec_y, marker='<', linestyle='-', color="#019e73", label="efspec=[1, 16]" , zorder=2, markersize = 5)
 
-    ax1.scatter(compass_trip_latency, compass_trip_acc, color="#e6a002", label="Astrolabe", marker="*", s=200 , zorder=3)
+    ax1.scatter(compass_trip_latency, compass_trip_acc, color="#e6a002", label="Compass", marker="*", s=200 , zorder=3)
 
     ax1.scatter(nolazy_x, nolazy_y, color="#0072B2", label="w/o Lazy Eviction", marker="*", s=200 , zorder=3)
 
@@ -139,7 +140,7 @@ def render_figure8():
     ax1.set_xticks([ 0, 2, 4, 6, 8])
     ax1.set_xlim(0, 10)
     ax1.set_yticks([ 0.20, 0.23, 0.26, 0.29, 0.32, 0.35])
-    ax1.set_ylim(0.17, 0.38)
+    ax1.set_ylim(0.16, 0.38)
     # ax1.legend()
     ax1.grid(True, linestyle='--')
     ax1.spines['right'].set_color('gray')
@@ -149,7 +150,7 @@ def render_figure8():
     ax2.set_xlim(104, 106)
     ax2.set_xticks([104, 105, 106])
     ax2.grid(True, linestyle='--')
-    ax2.set_ylim(0.17, 0.38)
+    ax2.set_ylim(0.16, 0.38)
     ax2.spines['left'].set_color('gray')
     ax2.tick_params(axis='y', left=False)
 
