@@ -10,7 +10,7 @@ ZONE = "us-central1-a"
 VPC_NAME = "skypilot-vpc"
 IMAGE_NAME = "artifact"
 PROJECT_ID = "encrypted-search-404320"
-PRIVATE_KEY_PATH = os.path.expanduser("~/.ssh/compass_artifact.pem")
+PRIVATE_KEY_PATH = os.path.expanduser("~/.ssh/compass_artifact")
 USER_NAME = "artifact"
 
 throuput = []

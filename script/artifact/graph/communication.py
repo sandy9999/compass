@@ -37,7 +37,7 @@ def pretty_print_comm():
     d = "sift"
     print(f"{d:<12}:  - -")
     for d in ["trip", "msmarco"]:
-        comm, rnd = parse_tfidf_comm(f"./script/artifact/results/comm_obi_{d}_10000.")
+        comm, rnd = parse_tfidf_comm(f"./script/artifact/results/comm_obi_{d}_10000.txt")
         print(f"{d:<12}:  {comm:>8.1f} MB {rnd:>2} RT")
 
 if __name__ == "__main__":

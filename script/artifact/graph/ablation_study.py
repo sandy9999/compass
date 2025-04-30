@@ -12,7 +12,7 @@ def fvecs_read(fname):
     return ivecs_read(fname).view('float32')
 
 def render_figure8():
-    print("Rendering figure 6...")
+    print("Rendering figure 8...")
     os.chdir(os.path.expanduser('~/compass/'))
     d = "msmarco"
 

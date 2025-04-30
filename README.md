@@ -1,6 +1,7 @@
 # Artifact Evaluation for Compass
 
-This is the artifact for the paper "Compass: Encrypted Semantic Search with High Accuracy". (To appear in OSDI 2025).
+This is the artifact for the paper **"Compass: Encrypted Semantic Search with High Accuracy"** (to appear in OSDI 2025).
+
 
 
 **WARNING:** This is an academic proof-of-concept prototype and has not received careful code review. This implementation is NOT ready for production use.
@@ -28,7 +29,7 @@ This repository is structured as follows:
 ```
 
 ### Dataset
-We've uploaded the datasets, indices, and pre-built initial client and server states to a public Google Cloud Storage bucket. To download all the files, run
+We've uploaded the datasets, indices, and pre-built initial client and server states to a public Google Cloud Storage bucket `compass_osdi`. To download all the files, run
 
 ```bash
 python3 ./script/gcs_download.py
@@ -78,7 +79,7 @@ For separate machines, run
 
 ### Network Simulation
 
-We use `tcconfig` to limite each instance's bandwidth and latency. Here are some 
+We use `tcconfig` to limit each instance's bandwidth and latency. 
 
 ```bash
 # fast network
@@ -92,65 +93,78 @@ tcdel $device_name --all
 ```
 
 
-## Artifact Evaluation - Reproducing results 
+## Reproducing results 
 
-To reproduce the results in the paper, we have prepared a driver script `driver.py` and provisioned a GCP instance for our artifact evaluators. This script needs to be run within the provisioned instance for launching testing instances during the experiments. 
+To reproduce the paper's results, we provide a driver script (`driver.py`) and a provisioned GCP instance for artifact evaluators. This script needs to be run within the provisioned instance for launching testing instances during the experiments. 
 
 
 ### Performance Experiments
 
-The performance experiments includes the accuracy and latency experiments. It takes around 2hrs. The following command will create two instances (one server and one client) and run latency experiments between them. The accuracy experiments will be run locally in the server instance for faster results. After the experiments, the results will be fetched to the provisioned instance, under directory `./script/artifact/results/`. The server and the client will be terminated once the performance experiments are done. 
+[Approx. 2hrs] The performance experiments includes the accuracy and latency experiments.This command creates two instances (server and client) to run latency experiments. Accuracy experiments run locally on the server instance for faster results. After completion, results are fetched to './script/artifact/results/', and instances are terminated.
+
 ```bash
-python3 driver.py --task performance
+python3 driver.py --task performance --verbose
 ```
 
 ### Ablation study
 
-The following command launch the ablation study on `msmarco` dataset under `slow` network configuration. It takes around 1.5hrs. Similar to the performance experiments, two instances will be launched and after the experiment the results will be fetched and isnatnces will be terminated.
+[Approx. 2hrs] We perform the ablation study on `msmarco` dataset under `slow` network configuration. Similar to the `performance experiments`, two instances will be launched, and after the experiment, the results will be fetched to './script/artifact/results/'.
+
 ```bash
-python3 driver.py --task ablation
+python3 driver.py --task ablation --verbose
 ```
 
+### Figures
+Once `performance` experiment is done, run following command to render figures or print tables. Figures are saved in pdf format under `eval_fig/`. The communication results may slightly differ from the results in the paper because of batching multiple paths during eviction. 
 
-### Figure 6
+#### Figure 6
 
-Once `performance` experiment is done, run following command to render figure 6. The figure will be in pdf format under `eval_fig/`.
 ```bash
 python3 driver.py --plot figure6
 ```
 
-### Figure 7
-Once `performance` experiment is done, run following command to render figure 7. The figure will be in pdf format under `eval_fig/`.
+#### Figure 7
+
 ```bash
 python3 driver.py --plot figure7
 ```
 
-### Table 3
-Once `performance` experiment is done, run following command to print out the values in Table 3.
+#### Table 3
+
 ```bash
 python3 driver.py --plot table3
 ```
 
-### Table 4
-Once `performance` experiment is done, run following command to print out the values in Table 4.
+#### Table 4
+
 ```bash
 python3 driver.py --plot table4
 ```
 
-### Figure 8
-Once `ablation` experiment is done, run following command to render figure 8. The figure will be in pdf format under `eval_fig/`.
+#### Figure 8
+
 ```bash
 python3 driver.py --plot figure8
 ```
 
 ### Throughput
+Our throughput experiments launches 25 client instances that keeps sending request and one server instance that stores the index for all clients. In our script we have one (non-stop) monitor thread that collects throughput (qps) from each client. To stop the throuput experiment, use key-board (Ctrl+C) interupt. After throuput experiment, please run the cleanup command to terminated all instances.
 
 ```bash
 python3 driver.py --task throuput
 ```
 
-### Failure handling
+### Cleanup
+The following command terminate all artifact evaluation related instances.
 
 ```bash
 python3 driver.py --task stop_instances
 ```
+
+### Common Issues
+
+Both `performance` and `ablation` experiments automatically terminate instances upon completion.  If an abnormal termination occurs (e.g., due to instance failure or GCP staging delays), run the cleanup command above before restarting the experiment.
+
+### Contact us
+
+If you run into any issues or have any questions, please contact us on HotCRP or via email at `jinhao.zhu@berkeley.edu`, and we will reply promptly!

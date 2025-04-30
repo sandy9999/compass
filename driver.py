@@ -61,7 +61,7 @@ def run_ablation(verbose):
     delete_instance(PROJECT_ID, ZONE, s_instance["name"])
     delete_instance(PROJECT_ID, ZONE, c_instance["name"])
 
-def run_throuput(verbose):
+def run_tp(verbose):
     s_instance = create_instance(server_config, "ae-server-2")
     tracers = create_tracers(client_config, 25)
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         
         parser.add_argument(
             "--task",
-            choices=["performance", "ablation", "stop_instances"],
+            choices=["performance", "ablation", "throughput","stop_instances"],
             help="specify the task to run: performance, ablation, or stop all ae instances"
         )
 
@@ -102,11 +102,14 @@ if __name__ == "__main__":
 
         if args.task:
             if args.task == "performance":
-                print("Running performance task")
+                print("Running performance exp")
                 run_performance(args.verbose)
             elif args.task == "ablation":
-                print("Running ablation task")
+                print("Running ablation exp")
                 run_ablation(args.verbose)
+            elif args.task == "throughput":
+                print("Running thoughput exp")
+                run_tp(args.verbose)
             elif args.task == "stop_instances":
                 stop_instances()
             
