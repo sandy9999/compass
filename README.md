@@ -15,10 +15,10 @@ This repository is structured as follows:
 - **`tests/`**: Contains implementations for the Compass client and server, and code for initializing ORAM from a standard HNSW index.
   - `compass_init` is for building the initial client and server states based on an HNSW index and configuration.
   - `test_compass_ring` is a reference Compass client/server built on Ring ORAM.
-  - `test_compass_accuracy` is a variant that leaks access pattern. This is for faster accuracy estimation.
+  - `test_compass_accuracy` is a variant that leaks access pattern. This is for faster accuracy experiments.
   - `test_compass_tp` is a variant that keeps sending queries. This is for throughput experiments.
   - `config/config_ring.json` contains the parameter configuration for each of the evaluated dataset.
-- **`third_party/`**: Contains third-party libraries utilized by Compass and baseline implementations.
+- **`third_party/`**: Contains third-party libraries used by Compass.
 
 
 ## Setup
@@ -57,9 +57,9 @@ Usage: ./test_compass_ring [ name=value ]...
         efn     Size of directional filter  [ default=config ]
         batch   Disable batching  [ default=1 ]
         lazy    Disable lazy eviction  [ default=1 ]
-        f_latency       Save latency  [ default= None]
-        f_accuracy      Save accuracy  [ default= None]
-        f_comm  Save communication  [ default= None]
+        f_latency       Save latency  [ default= ""]
+        f_accuracy      Save accuracy  [ default= ""]
+        f_comm  Save communication  [ default= ""]
 ```
 
 Currently we support four datasets: `laion`, `sift`, `trip`, `msmarco`. To quickly verify the local dependencies, run the following commands in two separate terminals:
@@ -98,23 +98,23 @@ tcdel $device_name --all
 
 To reproduce the paper's results, we provide a driver script (`driver.py`) and a provisioned GCP instance for artifact evaluators. The provisioned instance contains sufficient credentials for the script to launch testing instances during the experiments. 
 
-**Note：** As our experiments take long time, we recommend running our script in a `tmux` session. Please avoid running multiple experiments at the same time. 
+**Note：** As our experiments take a long time to complete, we recommend running the script within a `tmux` session. Please avoid running multiple experiments simultaneously.
 
 
 ### Performance Experiments
 
-[Approx. 2hrs] The performance experiments includes the accuracy and latency experiments.This command creates two instances (server and client) to run latency experiments. Accuracy experiments run locally on the server instance for faster results. After completion, results are fetched to './script/artifact/results/', and instances are terminated.
-
+[Approx. 2hrs] The performance experiments includes the accuracy and latency experiments.This command creates two instances (server and client) to run latency experiments. Accuracy experiments run locally on the server instance for faster results. After completion, results are fetched to `./script/artifact/results/`, and instances are terminated.
+Use `--verbose` for detailed test progress.
 ```bash
-python3 driver.py --task performance --verbose
+python3 driver.py --task performance
 ```
 
 ### Ablation study
 
-[Approx. 2hrs] We perform the ablation study on `msmarco` dataset under `slow` network configuration. Similar to the `performance experiments`, two instances will be launched, and after the experiment, the results will be fetched to './script/artifact/results/'.
+[Approx. 2hrs] We perform the ablation study on `msmarco` dataset under `slow` network configuration. Similar to the `performance experiments`, two instances will be launched, and after the experiment, the results will be fetched to `./script/artifact/results/`.
 
 ```bash
-python3 driver.py --task ablation --verbose
+python3 driver.py --task ablation
 ```
 
 ### Figures
@@ -151,7 +151,7 @@ python3 driver.py --plot figure8
 ```
 
 ### Throughput
-Our throughput experiments launches 25 client instances that keeps sending request and one server instance that stores the index for all clients. In our script we have one (non-stop) monitor thread that collects throughput (qps) from each client. To stop the throuput experiment, use key-board (Ctrl+C) interupt. After throuput experiment, please run the cleanup command to terminated all instances.
+Our throughput experiments launches 25 client instances that keeps sending request and one server instance that stores the index for all clients. In our script we have one (non-stop) monitor thread that collects throughput (qps) from each client. To stop the throuput experiment, use key-board (Ctrl+C) interupt. After throuput experiment, please run the cleanup command to mannually terminat all instances.
 
 ```bash
 python3 driver.py --task throughput
@@ -166,7 +166,7 @@ python3 driver.py --task stop_instances
 
 ### Common Issues
 
-Both `performance` and `ablation` experiments automatically terminate instances upon completion.  If an abnormal termination occurs (e.g., due to instance failure or GCP staging delays), run the cleanup command above before restarting the experiment.
+Both `performance` and `ablation` experiments automatically terminate instances upon completion.  If an error occurs (e.g., due to instance failure or GCP staging delays), run the cleanup command above before restarting the experiment.
 
 ### Contact us
 
