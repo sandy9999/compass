@@ -110,7 +110,7 @@ inline void tprint(string s, double t0){
 
 int party = 0;
 int port = 8000;
-string address = "127.0.0.1";
+string address = "10.2.0.4";
 string dataset = "";
 
 int main(int argc, char **argv) {
@@ -352,6 +352,8 @@ int main(int argc, char **argv) {
             for(int nrt : s_stats.nsteps_map[0]){
                 total += nrt;
             }
+
+            printf("No. of early reshuffles called: %d\n", ((OramRing*)oram)->cnt_early_reshuffle);
 
             printf("[%.3f s] Search time: %.3f s\n", elapsed() - t0, elapsed() - t1);
 

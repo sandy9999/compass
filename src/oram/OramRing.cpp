@@ -301,7 +301,7 @@ std::vector<int*> OramRing::batch_multi_access_swap_ro(std::vector<Operation> op
                 this->metadata[pos].count++;
 
                 if(this->metadata[pos].count >= dummy_size){
-                    cnt_early_reshuffle += 1;
+                    //cnt_early_reshuffle += 1;
                     reshuffle = true;
                     reshuffle_buckets.insert(pos);
                 }
@@ -323,7 +323,7 @@ std::vector<int*> OramRing::batch_multi_access_swap_ro(std::vector<Operation> op
                 this->metadata[pos].count++;
 
                 if(this->metadata[pos].count >= dummy_size){
-                    cnt_early_reshuffle += 1;
+                    //cnt_early_reshuffle += 1;
                     reshuffle = true;
                     reshuffle_buckets.insert(pos);
                 }
@@ -336,6 +336,7 @@ std::vector<int*> OramRing::batch_multi_access_swap_ro(std::vector<Operation> op
         // Re-generate the offsets for shuffled buckets
         if(reshuffle){
             // cout << "Early reshuffle " << reshuffle_buckets.size() << " buckets." << endl;
+            cnt_early_reshuffle += 1;
             early_reshuffle(vector<int>(reshuffle_buckets.begin(), reshuffle_buckets.end()));
         }
 
