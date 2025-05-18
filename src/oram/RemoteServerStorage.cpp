@@ -765,7 +765,8 @@ void RemoteServerStorage::ReadBlockBatchAsBlockRingXor(const std::vector<int>& p
 					per_block_size*Bucket::getMaxSize(), 
 					dummy_ctx
 				);
-
+				
+				delete b;
 				assert(ctx_len == SBucket::getCipherSize() - 16);
 
 				// for (int i = 0; i < 10; i++) { // Adjust the length as needed

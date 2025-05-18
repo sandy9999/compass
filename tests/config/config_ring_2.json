@@ -1,0 +1,32 @@
+{
+    "sift": {
+        "integrity": true,
+        "M": 32,
+        "dim": 128,
+        "base_size": 1000000,
+        "block_size": 258,
+        "dummy_size": 64,
+        "real_bucket_size": 32,
+        "evict_rate": 36, 
+        "num_levels": 16,
+        "oram_cached_levels": 4,
+        "ef_search": 32,
+        "ef_spec": 32,
+        "ef_neighbor": 32,
+        "ef_lowest_cached_layer": 2,
+        "ef_upper_steps": 32,
+        
+        "index_path": "../data/dataset/sift/hnsw.index",
+        "pq_path": "../data/dataset/sift/pq_full_8.index",
+        "base_path": "../data/dataset/sift/base.fvecs",
+        "query_path": "../data/dataset/sift/query.fvecs",
+        "gt_path": "../data/dataset/sift/gt.ivecs",
+        
+        "buckets_path": "../data/snap_ring/server/sift/sift_buckets_32_40.bin",
+        "pos_map_path": "../data/snap_ring/client/sift/sift_pos_map_32_40.bin",
+        "block_map_path": "../data/snap_ring/client/sift/sift_block_map_32_40.bin",
+        "metadata_path": "../data/snap_ring/client/sift/sift_metadata_32_40.bin",
+        "graph_cache_path": "../data/snap_ring/client/sift/sift_graph_cache_32_40.bin",
+        "hash_path": "../data/snap_ring/client/sift/sift_hash_32_40.bin"
+    }
+} 

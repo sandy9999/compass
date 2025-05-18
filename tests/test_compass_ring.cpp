@@ -41,9 +41,11 @@ double elapsed() {
 
 
 // ground truth labels @gt, results to evaluate @I with @nq queries, returns @gt_size-Recall@k where gt had max gt_size NN's per query
-float compute_recall(faiss::idx_t* gt, int gt_size, faiss::idx_t* I, int nq, int k, int gamma=1) {
+float compute_recall(faiss::idx_t* gt, int gt_size, faiss::idx_t* I, int nq, int k, int gamma=1) 
+{
     // printf("compute_recall params: gt.size(): %ld, gt_size: %d, I.size(): %ld, nq: %d, k: %d, gamma: %d\n", gt.size(), gt_size, I.size(), nq, k, gamma);
     int n_1 = 0, n_10 = 0, n_100 = 0;
+    double mrr = 0;
     for (int i = 0; i < nq; i++) { // loop over all queries
         // int gt_nn = gt[i * k];
         faiss::idx_t* first = gt + i*gt_size;
@@ -75,11 +77,20 @@ float compute_recall(faiss::idx_t* gt, int gt_size, faiss::idx_t* I, int nq, int
                     n_1++;
             }
         }
+        // Calculate MRR
+        for(int rank = 0; rank < k; rank++){
+            if(I[i * k + rank] == gt[i * gt_size]){
+                mrr += 1.0/(rank+1);
+                break;
+            }
+        }
     }
+
     // BASE ACCURACY
     printf("* Base HNSW accuracy relative to exact search:\n");
     printf("\tR@1 = %.4f\n", n_1 / float(nq) );
     printf("\tR@10 = %.4f\n", n_10 / float(nq));
+    printf("\tMRR = %.4f\n", mrr / double(nq));
     // printf("\tR@100 = %.4f\n", n_100 / float(nq)); // not sure why this is always same as R@10
     // printf("\t---Results for %ld queries, k=%d, N=%ld, gt_size=%d\n", nq, k, N, gt_size);
     return (n_10 / float(nq));
@@ -110,7 +121,8 @@ inline void tprint(string s, double t0){
 
 int party = 0;
 int port = 8000;
-string address = "10.2.0.4";
+string address = "127.0.0.1";
+
 string dataset = "";
 
 int main(int argc, char **argv) {
@@ -315,7 +327,7 @@ int main(int argc, char **argv) {
         // io->recv_data(&tmp, 1);
 
         // faster test for first 100 queries
-        nq = 100;
+        nq = 10000;
 
         comm = io->counter;
         round = io->num_rounds;
