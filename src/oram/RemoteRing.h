@@ -49,6 +49,18 @@ public:
     void update_mt_reshuffle(const std::vector<int> &position, unsigned char* payload);
     bool verify_and_insert(int pos, uint8_t* hash);
 
+    int rounds_for_oram_access = 0;
+    int rounds_for_reshuffles = 0;
+    int rounds_for_evictions = 0;
+
+    long comm_for_oram_access = 0;
+    long comm_for_reshuffles = 0;
+    long comm_for_evictions = 0;
+
+    long server_comm_for_oram_access = 0;
+    long server_comm_for_reshuffles = 0;
+    long server_comm_for_evictions = 0;
+
 private:
 
     // IO

@@ -42,9 +42,11 @@ double elapsed() {
 
 
 // ground truth labels @gt, results to evaluate @I with @nq queries, returns @gt_size-Recall@k where gt had max gt_size NN's per query
-float compute_recall(faiss::idx_t* gt, int gt_size, faiss::idx_t* I, int nq, int k, int gamma=1) {
+float compute_recall(faiss::idx_t* gt, int gt_size, faiss::idx_t* I, int nq, int k, int gamma=1)
+{
     // printf("compute_recall params: gt.size(): %ld, gt_size: %d, I.size(): %ld, nq: %d, k: %d, gamma: %d\n", gt.size(), gt_size, I.size(), nq, k, gamma);
     int n_1 = 0, n_10 = 0, n_100 = 0;
+    double mrr = 0;
     for (int i = 0; i < nq; i++) { // loop over all queries
         // int gt_nn = gt[i * k];
         faiss::idx_t* first = gt + i*gt_size;
@@ -76,11 +78,20 @@ float compute_recall(faiss::idx_t* gt, int gt_size, faiss::idx_t* I, int nq, int
                     n_1++;
             }
         }
+        // Calculate MRR
+        for(int rank = 0; rank < k; rank++){
+            if(I[i * k + rank] == gt[i * gt_size]){
+                mrr += 1.0/(rank+1);
+                break;
+            }
+        }
     }
+
     // BASE ACCURACY
     printf("* Base HNSW accuracy relative to exact search:\n");
     printf("\tR@1 = %.4f\n", n_1 / float(nq) );
     printf("\tR@10 = %.4f\n", n_10 / float(nq));
+    printf("\tMRR = %.4f\n", mrr / double(nq));
     // printf("\tR@100 = %.4f\n", n_100 / float(nq)); // not sure why this is always same as R@10
     // printf("\t---Results for %ld queries, k=%d, N=%ld, gt_size=%d\n", nq, k, N, gt_size);
     return (n_10 / float(nq));
@@ -201,6 +212,10 @@ int main(int argc, char **argv) {
             long final_comm = io->counter - comm;
             io->send_data(&final_comm, sizeof(long));
         }
+
+        
+        long final_comm = io->counter - comm;
+        io->send_data(&final_comm, sizeof(long));
         
     } else{
         // Client
@@ -261,6 +276,17 @@ int main(int argc, char **argv) {
 
             // ORAM cache
             ((OramRing*)oram)->init_cache_top();
+            remote_storage->server_comm_for_oram_access = 0;
+            remote_storage->server_comm_for_reshuffles = 0;
+            // remote_storage->server_comm_for_evictions = 0;
+
+            remote_storage->comm_for_oram_access = 0;
+            remote_storage->comm_for_reshuffles = 0;
+            remote_storage->comm_for_evictions = 0;
+
+            remote_storage->rounds_for_oram_access = 0;
+            remote_storage->rounds_for_reshuffles = 0;
+            remote_storage->rounds_for_evictions = 0;
         }
 
         tprint("Loading queries\n", t0);
@@ -406,8 +432,9 @@ int main(int argc, char **argv) {
         delete[] D;
         delete[] gt;
         
-
         remote_storage->close_server();
+        io->num_rounds--;
+        io->counter -= sizeof(int);
 
         if(f_comm != ""){
             long final_comm = io->counter - comm;
@@ -423,13 +450,25 @@ int main(int argc, char **argv) {
                 perror("Error opening file");
             }
         }
+
+        
+        long server_comm;
+        io->recv_data(&server_comm, sizeof(long));
+        io->num_rounds--;
+
+        std::cout << "Communication: " << (io->counter - comm + server_comm)*1.0/(1024*1024) << std::endl;
+        std::cout << "---> Oram Access: " << (remote_storage->comm_for_oram_access + remote_storage->server_comm_for_oram_access)*1.0/(1024*1024) << std::endl;
+        std::cout << "---> Reshuffles: " << (remote_storage->comm_for_reshuffles + remote_storage->server_comm_for_reshuffles)*1.0/(1024*1024) << std::endl;
+        std::cout << "---> Evictions: " << (remote_storage->comm_for_evictions + remote_storage->server_comm_for_evictions)*1.0/(1024*1024) << std::endl;
+
+        std::cout << "Round: " << io->num_rounds - round << std::endl;
+        std::cout << "---> Oram Access: " << (remote_storage->rounds_for_oram_access) << std::endl;
+        std::cout << "---> Reshuffles: " << (remote_storage->rounds_for_reshuffles) << std::endl;
+        std::cout << "---> Evictions: " << (remote_storage->rounds_for_evictions) << std::endl;
+
     }
 
     // delete io;
     // delete bf_io;
-
-    std::cout << "Communication cost: " << io->counter - comm << std::endl;
-    std::cout << "Round: " << io->num_rounds - round << std::endl;
-
     return 0;
 }

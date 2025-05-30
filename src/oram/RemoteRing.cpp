@@ -264,10 +264,31 @@ void RemoteRing::load_server_hash(const char* fname){
 void RemoteRing::run_server_memory(){
 	// cout << "Remote storage server running ..." << endl;
     
+	long server_to_client = 0;
+	long client_to_server = 0;
+	long oram_comm = 0;
+	long reshuffling_comm = 0;
+	long eviction_comm = 0;
+	long long_term_comm = 0;
+
 	while(1) {
 		int rt;
 		io->recv_data(&rt, sizeof(int));
+		client_to_server += sizeof(int);
+		if(rt == ReadBatchBlock_R || rt == WriteBatch_R){
+			reshuffling_comm += sizeof(int);
+		}
+
+		if(rt == WriteBatch || rt == WriteBatch_R){
+			eviction_comm += sizeof(int);
+		}
+
+		if(rt == ReadBatchBlockXor){
+			oram_comm += sizeof(int);
+		}
+
 		switch (rt){
+			
 			case Read:{
                 // Legacy branch, disabled
 				assert(0);
@@ -281,7 +302,15 @@ void RemoteRing::run_server_memory(){
 			case ReadBatchBlock_R:
 			case ReadBatchBlock: {
 				size_t num_blocks;
+
 				io->recv_data(&num_blocks, sizeof(size_t));
+
+				client_to_server += sizeof(size_t);
+				if(rt == ReadBatchBlock_R){
+					reshuffling_comm += sizeof(size_t);
+				} else {
+					eviction_comm += sizeof(size_t);
+				}
 
 				// auto t_fetch = std::chrono::high_resolution_clock::now();
 				
@@ -289,6 +318,13 @@ void RemoteRing::run_server_memory(){
 				std::vector<int> offset(num_blocks);
 				io->recv_data(position.data(), sizeof(int)*num_blocks);
 				io->recv_data(offset.data(), sizeof(int)*num_blocks);
+
+				client_to_server += 2*sizeof(int)*num_blocks;
+				if(rt == ReadBatchBlock_R){
+					reshuffling_comm += 2*sizeof(int)*num_blocks;
+				} else {
+					eviction_comm += 2*sizeof(int)*num_blocks;
+				}
 
 				size_t len = num_blocks * (ctx_block_size);
 				// cout << "ReadBucketBatch allocate payload for size: " << len << endl;
@@ -306,8 +342,19 @@ void RemoteRing::run_server_memory(){
 
 				// cout << "ReadBucketBatch write to payload done" << endl;
 
+				long comm = io->counter;
 				io->send_data(payload, sizeof(unsigned char)*len);
+				comm = io->counter - comm;
 
+				server_to_client += sizeof(unsigned char)*len;
+				if(rt == ReadBatchBlock_R){
+					reshuffling_comm += sizeof(unsigned char)*len;
+				} else {
+					eviction_comm += sizeof(unsigned char)*len;
+				}
+
+				io->send_data(&comm, sizeof(long));
+				io->counter -= sizeof(long);
 
 				if(integrity){
 					if(rt == ReadBatchBlock){
@@ -333,11 +380,18 @@ void RemoteRing::run_server_memory(){
 				size_t num_real_blocks;
 				io->recv_data(&num_blocks, sizeof(size_t));
 				io->recv_data(&num_real_blocks, sizeof(size_t));
+
+				client_to_server += 2*sizeof(size_t);
+				oram_comm += 2*sizeof(size_t);
 				
 				std::vector<int> position(num_blocks);
 				std::vector<int> offset(num_blocks);
 				io->recv_data(position.data(), sizeof(int)*num_blocks);
 				io->recv_data(offset.data(), sizeof(int)*num_blocks);
+
+				client_to_server += 2*sizeof(int)*num_blocks;
+				oram_comm += 2*sizeof(int)*num_blocks;
+
 
 				size_t path_len = num_blocks / num_real_blocks;
 
@@ -370,8 +424,16 @@ void RemoteRing::run_server_memory(){
 					
 				}
 
+				long comm = io->counter;
 				io->send_data(payload, sizeof(unsigned char)*len);
 				io->send_data(ivs, sizeof(unsigned char)*num_blocks*16);
+				comm = io->counter - comm;
+				
+				server_to_client += sizeof(unsigned char)*len + sizeof(unsigned char)*num_blocks*16;
+				oram_comm += sizeof(unsigned char)*len + sizeof(unsigned char)*num_blocks*16;
+
+				io->send_data(&comm, sizeof(long));
+				io->counter -= sizeof(long);
 
 				if(integrity){
 					send_hash(position, offset);
@@ -424,10 +486,25 @@ void RemoteRing::run_server_memory(){
 			case WriteBatch:{
 
 				size_t num_buckets;
+
 				io->recv_data(&num_buckets, sizeof(size_t));
+
+				client_to_server += sizeof(size_t);
+				if(rt == WriteBatch_R){
+					reshuffling_comm += sizeof(size_t);
+				} else {
+					eviction_comm += sizeof(size_t);
+				}
 
 				std::vector<int> position(num_buckets);
 				io->recv_data(position.data(), sizeof(int)*num_buckets);
+
+				client_to_server += sizeof(int)*num_buckets;
+				if(rt == WriteBatch_R){
+					reshuffling_comm += sizeof(int)*num_buckets;
+				} else {
+					eviction_comm += sizeof(int)*num_buckets;
+				}
 
 				size_t len = num_buckets * bucket_size * (ctx_block_size);
 
@@ -436,6 +513,12 @@ void RemoteRing::run_server_memory(){
 
 				io->recv_data(payload, sizeof(unsigned char)*len);
 
+				client_to_server += sizeof(unsigned char)*len;
+				if(rt = WriteBatch_R){
+					reshuffling_comm += sizeof(unsigned char)*len;
+				} else {
+					eviction_comm += sizeof(unsigned char)*len;
+				}
 
 				#pragma omp parallel for num_threads(NUM_THREADS)
 				for(size_t bucket_id = 0; bucket_id < num_buckets; bucket_id++){
@@ -479,7 +562,14 @@ void RemoteRing::run_server_memory(){
 				break;
 			}
 			case End:{
-				cout << "Remote storage server closing ..." << endl;
+				cout << "Remote storage server closing ..." << "\n";
+				cout << "Client to Server: " << client_to_server*1.0/(1024*1024) << "\n";
+				cout << "Server to Client: " << server_to_client*1.0/(1024*1024) << "\n";
+				cout << "Oram: " << oram_comm*1.0/(1024*1024) << "\n";
+				cout << "Reshuffling: " << reshuffling_comm*1.0/(1024*1024) << "\n";
+				cout << "Eviction: " << eviction_comm*1.0/(1024*1024) << "\n";
+
+
 				return;
 			}
 			default:{
@@ -497,6 +587,9 @@ void RemoteRing::ReadBlockBatchAsBlockRing(const std::vector<int>& positions, co
 	// For the sake of simple impelementation
 
 	// cout << "ReadBlockBatchAsBlockRing: 1" << endl;
+
+	int rounds = io->num_rounds;
+	long comm = io->counter;
 	
 	int rt = isReshuffle ? ReadBatchBlock_R : ReadBatchBlock;
 	io->send_data(&rt, sizeof(int));
@@ -513,6 +606,21 @@ void RemoteRing::ReadBlockBatchAsBlockRing(const std::vector<int>& positions, co
 	// cout << "ReadBucketBatch allocate done" << endl;
 
 	io->recv_data(payload, len);
+
+	if(isReshuffle){
+		rounds_for_reshuffles += (io->num_rounds - rounds);
+		comm_for_reshuffles += (sizeof(int) + sizeof(size_t) + 2*sizeof(int)*num_blocks);
+	} else {
+		rounds_for_evictions += (io->num_rounds - rounds);
+		comm_for_evictions += (sizeof(int) + sizeof(size_t) + 2*sizeof(int)*num_blocks);
+	}
+
+	io->recv_data(&comm, sizeof(long));
+	if(isReshuffle){
+		server_comm_for_reshuffles += len;
+	} else {
+		server_comm_for_evictions += len;
+	}
 
 	size_t per_block_size = (1 + ptx_block_size) * sizeof(int);
 	blocks.resize(num_blocks);
@@ -571,6 +679,9 @@ void RemoteRing::ReadBlockBatchAsBlockRingXor(const std::vector<int>& positions,
 
 	// cout << "ReadBlockBatchAsBlockRingXor - valids_len:  " << valids.size() << ", num_levels: " << num_levels << endl;
 	
+	int rounds = io->num_rounds;
+	long comm = io->counter;
+
 	int rt = ReadBatchBlockXor;
 	io->send_data(&rt, sizeof(int));
 
@@ -594,6 +705,12 @@ void RemoteRing::ReadBlockBatchAsBlockRingXor(const std::vector<int>& positions,
 
 	io->recv_data(payload, len);
 	io->recv_data(ivs, num_blocks*16);
+
+	rounds_for_oram_access += (io->num_rounds - rounds);
+	comm_for_oram_access += (io->counter - comm);
+
+	io->recv_data(&comm, sizeof(long));
+	server_comm_for_oram_access += comm;
 
 	size_t per_block_size = (1 + ptx_block_size) * sizeof(int);
 	blocks.resize(num_real_blocks);
@@ -706,6 +823,9 @@ void RemoteRing::ReadBlockBatchAsBlockRingXor(const std::vector<int>& positions,
 }
 
 void RemoteRing::WriteBucketBatchMapAsBlockRing(const std::map<int, vector<Block*>>& bucket_to_write, int bucket_size, bool isReshuffle){
+	int rounds = io->num_rounds;
+	int comm = io->counter;
+	
 	int rt = isReshuffle ? WriteBatch_R : WriteBatch;
 	io->send_data(&rt, sizeof(int));
 
@@ -744,6 +864,15 @@ void RemoteRing::WriteBucketBatchMapAsBlockRing(const std::map<int, vector<Block
 	io->send_data(positions.data(), positions.size()*sizeof(int));
 	io->send_data(payload, len);
 
+	if(isReshuffle){
+		rounds_for_reshuffles += (io->num_rounds - rounds);
+		comm_for_reshuffles += (sizeof(int) + sizeof(size_t) + positions.size()*sizeof(int) + len);
+		comm_for_reshuffles += 0;
+	} else {
+		rounds_for_evictions += (io->num_rounds - rounds);
+		comm_for_evictions += (sizeof(int) + sizeof(size_t) + positions.size()*sizeof(int) + len);
+		comm_for_reshuffles += 0;
+	}
 
 	// TODO: this could be optimized
 	// Instead of sending the hashes, the server could just recompute by it self
@@ -756,6 +885,8 @@ void RemoteRing::WriteBucketBatchMapAsBlockRing(const std::map<int, vector<Block
 	}
 
 	delete[] payload;
+
+	io->last_call = LastCall::Recv;
 }
 
 
